@@ -44,6 +44,34 @@ export type PhotoWeather = {
   snap: MeteoSnap | null;
 };
 
+export async function loadPhotoWeather(data: {
+  lat: number;
+  lng: number;
+  date: string;
+  time: string;
+}): Promise<PhotoWeather | null> {
+  const [fresh, plain, marine, current] = await Promise.all([
+    pullModels("https://api.open-meteo.com/v1/forecast", data),
+    pullPlain("https://api.open-meteo.com/v1/forecast", data),
+    pullMarine(data),
+    pullCurrent(data),
+  ]);
+  const modelsBody = hasAny(fresh)
+    ? fresh
+    : await pullModels("https://historical-forecast-api.open-meteo.com/v1/forecast", data);
+  const plainBody = hasPlain(plain) ? plain : await pullPlain("https://archive-api.open-meteo.com/v1/archive", data);
+  const snap = readSnap(plainBody, marine, current, data);
+  const fromModels = readModels(modelsBody, data);
+  if (!fromModels && !snap) return null;
+  return {
+    models: fromModels?.models ?? [],
+    airF: snap?.airF ?? fromModels?.airF ?? null,
+    windMph: snap?.windMph ?? fromModels?.windMph ?? null,
+    windDir: snap?.windDir || fromModels?.windDir || "",
+    snap,
+  };
+}
+
 export const getPhotoWeather = createServerFn({ method: "GET" })
   .validator((input: { lat: number; lng: number; date: string; time: string }) => {
     if (!input || !Number.isFinite(input.lat) || !Number.isFinite(input.lng)) {
@@ -54,28 +82,7 @@ export const getPhotoWeather = createServerFn({ method: "GET" })
     }
     return input;
   })
-  .handler(async ({ data }): Promise<PhotoWeather | null> => {
-    const [fresh, plain, marine, current] = await Promise.all([
-      pullModels("https://api.open-meteo.com/v1/forecast", data),
-      pullPlain("https://api.open-meteo.com/v1/forecast", data),
-      pullMarine(data),
-      pullCurrent(data),
-    ]);
-    const modelsBody = hasAny(fresh)
-      ? fresh
-      : await pullModels("https://historical-forecast-api.open-meteo.com/v1/forecast", data);
-    const plainBody = hasPlain(plain) ? plain : await pullPlain("https://archive-api.open-meteo.com/v1/archive", data);
-    const snap = readSnap(plainBody, marine, current, data);
-    const fromModels = readModels(modelsBody, data);
-    if (!fromModels && !snap) return null;
-    return {
-      models: fromModels?.models ?? [],
-      airF: snap?.airF ?? fromModels?.airF ?? null,
-      windMph: snap?.windMph ?? fromModels?.windMph ?? null,
-      windDir: snap?.windDir || fromModels?.windDir || "",
-      snap,
-    };
-  });
+  .handler(async ({ data }): Promise<PhotoWeather | null> => loadPhotoWeather(data));
 
 export function meteoLines(snap: MeteoSnap): Array<[string, string]> {
   const lines: Array<[string, string]> = [];

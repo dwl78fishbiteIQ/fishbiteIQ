@@ -7,7 +7,7 @@ import { filesFromUpload, rowFromPhoto, shrinkPhoto, speciesFromPhoto } from "@/
 import { EMPTY_FILTER, filterRows, type LogFilter } from "@/lib/fishing/log-filter";
 import { clearPhotos, loadPhoto, savePhoto } from "@/lib/fishing/photos";
 import { spotById } from "@/lib/fishing/spots";
-import { getConditions } from "@/lib/fishing/conditions";
+import { liveConditions } from "@/lib/fishing/live";
 import { hoursAfterTurn, noaaPhotoLink, tidePhrase } from "@/lib/fishing/station";
 import { clockToMinutes, formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, Species, TideStage, WindDir } from "@/lib/fishing/types";
@@ -518,7 +518,7 @@ function AddTrip({ onAdd, onDone }: { onAdd: (row: CatchRow) => void; onDone: ()
   useEffect(() => {
     if (!date || !start) return;
     let dead = false;
-    void getConditions({ data: { date } })
+    void liveConditions(date)
       .then((result) => {
         if (dead || !result.ok) return;
         const minutes = clockToMinutes(start);

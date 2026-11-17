@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ConditionsBar } from "@/components/fishing/conditions-bar";
 import { SolunarCard } from "@/components/fishing/solunar-card";
-import { getConditions } from "@/lib/fishing/conditions";
+import { liveConditions } from "@/lib/fishing/live";
 import type { Conditions, ConditionsResult } from "@/lib/fishing/types";
 
 export function ForecastView({ initial }: { initial: ConditionsResult }) {
@@ -29,7 +29,7 @@ export function ForecastView({ initial }: { initial: ConditionsResult }) {
       return;
     }
     setLoading(true);
-    getConditions({ data: { date } })
+    liveConditions(date)
       .then((result) => {
         if (cancelled) return;
         if (result.ok) {

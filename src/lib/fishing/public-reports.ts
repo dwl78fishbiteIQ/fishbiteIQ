@@ -30,6 +30,14 @@ const RECENT_DAYS = 7;
 const cache = { at: 0, value: null as PublicPulse | null };
 const TTL = 30 * 60 * 1000;
 
+export async function loadPublicReports(): Promise<PublicPulse | null> {
+  try {
+    return await loadPulse();
+  } catch {
+    return null;
+  }
+}
+
 export const getPublicReports = createServerFn({ method: "GET" }).handler(async (): Promise<PublicPulse | null> => {
   if (cache.value && Date.now() - cache.at < TTL) return cache.value;
   try {

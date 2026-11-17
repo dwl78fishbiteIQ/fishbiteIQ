@@ -5,8 +5,8 @@ import { LoaderCircle } from "lucide-react";
 import fishButton from "@/assets/fish-button.jpg";
 import { BaitPicker } from "@/components/fishing/bait-picker";
 import { suggestedFilename } from "@/lib/fishing/advisor";
-import { getConditions } from "@/lib/fishing/conditions";
-import { getPhotoWeather, meteoLines, type ModelRead } from "@/lib/fishing/photo-weather";
+import { liveConditions, livePhotoWeather, liveReadPhoto } from "@/lib/fishing/live";
+import { meteoLines, type ModelRead } from "@/lib/fishing/photo-weather";
 import { shrinkPhoto } from "@/lib/fishing/import-log";
 import { captureStamp, readPhotoMeta, type PhotoMeta } from "@/lib/fishing/photo-meta";
 import { savePhoto } from "@/lib/fishing/photos";
@@ -14,7 +14,6 @@ import { hoursAfterTurn, stageFromStation, tidePhrase } from "@/lib/fishing/stat
 import { clockToMinutes, todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, MeteoSnap, PhotoRead, Species, TideStage, WindDir } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
-import { readPhoto } from "@/lib/fishing/vision";
 
 const field = "h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm";
 
@@ -92,7 +91,7 @@ export function PhotoDesk({
   useEffect(() => {
     if (!uploaded || !date || !start) return;
     let dead = false;
-    void getConditions({ data: { date } })
+    void liveConditions(date)
       .then((result) => {
         if (dead || !result.ok) return;
         const minutes = clockToMinutes(start);
@@ -117,7 +116,7 @@ export function PhotoDesk({
       return;
     }
     let dead = false;
-    void getPhotoWeather({ data: { lat, lng, date, time: start } })
+    void livePhotoWeather({ lat, lng, date, time: start })
       .then((result) => {
         if (dead || !result) return;
         setModels(result.models);
@@ -148,7 +147,7 @@ export function PhotoDesk({
       applyPlace(meta);
       const dataUrl = await previewUrl(file);
       setPreview(dataUrl);
-      const result = await readPhoto({ data: { imageDataUrl: dataUrl } });
+      const result = await liveReadPhoto(dataUrl);
       if (!result.ok) {
         setReadError(result.message);
         return;

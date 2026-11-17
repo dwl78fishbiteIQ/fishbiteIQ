@@ -4,7 +4,7 @@ import { BiteCalendar } from "@/components/fishing/bite-calendar";
 import { CatchMap } from "@/components/fishing/catch-map";
 import { PhotoDesk } from "@/components/fishing/photo-desk";
 import { advise, commonName, parseAsk, whenQuery, type Query } from "@/lib/fishing/advisor";
-import { getConditions } from "@/lib/fishing/conditions";
+import { liveConditions } from "@/lib/fishing/live";
 import { todayInCharleston } from "@/lib/fishing/time";
 import type { Advice, Area, CatchRow, Conditions, ConditionsResult, Species } from "@/lib/fishing/types";
 import type { Waypoint } from "@/lib/fishing/waypoints";
@@ -73,7 +73,7 @@ export function AdviseView({
       return;
     }
     setLoading(true);
-    getConditions({ data: { date } })
+    liveConditions(date)
       .then((result) => {
         if (cancelled) return;
         if (result.ok) {
@@ -104,7 +104,7 @@ export function AdviseView({
     if (cached && cached !== "fail") return cached;
     if (cached === "fail") return null;
     try {
-      const result = await getConditions({ data: { date: d } });
+      const result = await liveConditions(d);
       if (result.ok) {
         cache.current.set(d, result);
         return result;

@@ -2,7 +2,7 @@ import { unzipSync } from "fflate";
 import { captureStamp, readPhotoMeta } from "@/lib/fishing/photo-meta";
 import { todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, Species } from "@/lib/fishing/types";
-import { readPhoto } from "@/lib/fishing/vision";
+import { liveReadPhoto } from "@/lib/fishing/live";
 
 const IMAGE = /\.(jpe?g|png|webp|heic|heif)$/i;
 
@@ -68,7 +68,7 @@ export async function speciesFromPhoto(
   imageDataUrl: string,
 ): Promise<{ species: Species | ""; lengthIn: number | null }> {
   try {
-    const result = await readPhoto({ data: { imageDataUrl } });
+    const result = await liveReadPhoto(imageDataUrl);
     if (!result.ok || !result.species) return { species: "", lengthIn: null };
     const length = result.lengthHigh ?? result.lengthLow;
     return { species: result.species, lengthIn: length };

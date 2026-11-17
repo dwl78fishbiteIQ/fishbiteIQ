@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { biteOutlook, type BiteOutlook } from "@/lib/fishing/advisor";
-import { getConditions } from "@/lib/fishing/conditions";
-import { getPublicReports, withPublicReports, type PublicPulse } from "@/lib/fishing/public-reports";
+import { liveConditions, livePublicReports } from "@/lib/fishing/live";
+import { withPublicReports, type PublicPulse } from "@/lib/fishing/public-reports";
 import { addDays, todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, Conditions } from "@/lib/fishing/types";
 import { cn } from "@/lib/cn";
@@ -18,7 +18,7 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
   useEffect(() => {
     let dead = false;
     for (const date of dates) {
-      void getConditions({ data: { date } })
+      void liveConditions(date)
         .then((result) => {
           if (dead) return;
           setConditions((current) => ({ ...current, [date]: result.ok ? result : null }));
@@ -36,7 +36,7 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
 
   useEffect(() => {
     let dead = false;
-    void getPublicReports()
+    void livePublicReports()
       .then((pulse) => {
         if (!dead) setReports(pulse);
       })
