@@ -27,12 +27,12 @@ jobs:
       - run: npm run build:pages
       - name: Pages files
         run: |
-          test -f dist/client/index.html
-          cp dist/client/index.html dist/client/404.html
-          printf 'www.fishbiteiq.com\n' > dist/client/CNAME
+          test -f .vercel/output/static/index.html
+          cp .vercel/output/static/index.html .vercel/output/static/404.html
+          printf 'www.fishbiteiq.com\n' > .vercel/output/static/CNAME
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/client
+          path: .vercel/output/static
 
   deploy:
     needs: build
