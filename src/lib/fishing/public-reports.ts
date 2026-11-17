@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { loadConditions } from "@/lib/fishing/conditions";
 import { stageFromStation } from "@/lib/fishing/station";
-import { addDays, calendarDiff, degToWind, formatPrettyDate, monthOf, todayInCharleston, windClose } from "@/lib/fishing/time";
+import { addDays, calendarDiff, degToWind, formatClock, formatPrettyDate, monthOf, todayInCharleston, windClose } from "@/lib/fishing/time";
 import type { BiteOutlook } from "@/lib/fishing/advisor";
 import type { Conditions, TideStage, WindDir } from "@/lib/fishing/types";
 
@@ -49,6 +49,34 @@ export const getPublicReports = createServerFn({ method: "GET" }).handler(async 
     return cache.value;
   }
 });
+
+export function publicOnlyOutlook(base: BiteOutlook, pulse: PublicPulse | null, day: Conditions | null): BiteOutlook {
+  if (base.grade === "Stay ashore") return base;
+  if (!pulse) {
+    return {
+      ...base,
+      grade: "Fair",
+      window: null,
+      summary: "Public reports didn't load. This is only the tide and the forecast.",
+    };
+  }
+  const match = day ? pulse.trips.find((trip) => sameWater(day, trip)) : undefined;
+  if (!match) {
+    return {
+      ...base,
+      grade: "Fair",
+      window: null,
+      summary: `${pulse.prior} No report from the last several days was fished in wind, water, and tide like this day.`,
+    };
+  }
+  const start = Math.max(0, match.minutes - 90);
+  return {
+    ...base,
+    grade: "Good",
+    window: `${formatClock(start)}–${formatClock(start + 180)}`,
+    summary: `${pulse.prior} A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day. The catch log is not in this score.`,
+  };
+}
 
 export function withPublicReports(outlook: BiteOutlook, pulse: PublicPulse | null, day: Conditions | null): BiteOutlook {
   if (!pulse || outlook.grade === "Stay ashore") return outlook;

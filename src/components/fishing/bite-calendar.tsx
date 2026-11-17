@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { biteOutlook, type BiteOutlook } from "@/lib/fishing/advisor";
 import { liveConditions, livePublicReports } from "@/lib/fishing/live";
-import { withPublicReports, type PublicPulse } from "@/lib/fishing/public-reports";
+import { publicOnlyOutlook, withPublicReports, type PublicPulse } from "@/lib/fishing/public-reports";
 import { addDays, todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, Conditions } from "@/lib/fishing/types";
 import { cn } from "@/lib/cn";
@@ -13,7 +13,7 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
   const [conditions, setConditions] = useState<Record<string, Conditions | null>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [reports, setReports] = useState<PublicPulse | null>(null);
-  const [combined, setCombined] = useState(false);
+  const [source, setSource] = useState<HookSource>("log");
 
   useEffect(() => {
     let dead = false;
@@ -52,39 +52,39 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
 
   function scoreDay(date: string): BiteOutlook | null {
     if (!(date in conditions)) return null;
-    const base = biteOutlook(rows, conditions[date] ?? null, date);
-    return combined ? withPublicReports(base, reports, conditions[date] ?? null) : base;
+    const base = biteOutlook(source === "reports" ? [] : rows, conditions[date] ?? null, date);
+    if (source === "log") return base;
+    if (source === "both") return withPublicReports(base, reports, conditions[date] ?? null);
+    return publicOnlyOutlook(base, reports, conditions[date] ?? null);
   }
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
       <h2 className="text-2xl text-fg">5-Day Hook Up Forecast</h2>
       <p className="mt-1 text-sm text-muted">
-        {combined
-          ? "Scored from your catch log, Haddrell's Point, the other Charleston reports, the tide, and the forecast."
-          : "Scored from your catch log, the Charleston tide, and the forecast."}
+        {source === "reports"
+          ? "Scored from Haddrell's Point, the other Charleston reports, the tide, and the forecast. The catch log is not used."
+          : source === "both"
+            ? "Scored from your catch log, Haddrell's Point, the other Charleston reports, the tide, and the forecast."
+            : "Scored from your catch log, the Charleston tide, and the forecast."}
       </p>
       <fieldset className="mt-3 flex flex-wrap gap-2">
-        <legend className="sr-only">Score the forecast from the catch log only, or add public fishing reports</legend>
+        <legend className="sr-only">Score the forecast from the catch log, public fishing reports, or both</legend>
         {(
           [
-            [false, "Catch log"],
-            [true, "Catch log + Public Fishing Reports"],
+            ["log", "Catch log"],
+            ["both", "Catch log + Public Fishing Reports"],
+            ["reports", "Public Fishing Reports"],
           ] as const
         ).map(([value, label]) => (
           <label
-            key={label}
+            key={value}
             className={cn(
               "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm",
-              combined === value ? "border-accent bg-bg font-semibold text-fg" : "border-border text-muted",
+              source === value ? "border-accent bg-bg font-semibold text-fg" : "border-border text-muted",
             )}
           >
-            <input
-              type="radio"
-              name="hookup-source"
-              checked={combined === value}
-              onChange={() => setCombined(value)}
-            />
+            <input type="radio" name="hookup-source" checked={source === value} onChange={() => setSource(value)} />
             {label}
           </label>
         ))}
@@ -135,7 +135,7 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
         })}
       </div>
       {opened ? <p className="mt-3 text-sm text-fg">{opened.summary}</p> : null}
-      {combined && reports ? (
+      {source !== "log" && reports ? (
         <p className="mt-2 text-sm text-muted">
           Reports:{" "}
           {reports.sources.map((source, index) => (
@@ -151,6 +151,8 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
     </section>
   );
 }
+
+type HookSource = "log" | "both" | "reports";
 
 function dayBits(iso: string): { weekday: string; day: string } {
   const [year, month, day] = iso.split("-").map(Number);
