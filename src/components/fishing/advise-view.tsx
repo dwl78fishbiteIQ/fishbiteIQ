@@ -16,6 +16,36 @@ type Turn = {
   pending: string | null;
 };
 
+type SpeechRec = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechHeard) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechHeard = {
+  results: ArrayLike<{ isFinal: boolean; 0?: { transcript: string } }>;
+};
+
+function speechCtor(): (new () => SpeechRec) | null {
+  if (typeof window === "undefined") return null;
+  const host = window as Window & {
+    SpeechRecognition?: new () => SpeechRec;
+    webkitSpeechRecognition?: new () => SpeechRec;
+  };
+  return host.SpeechRecognition ?? host.webkitSpeechRecognition ?? null;
+}
+
+function queryAfterWake(said: string): string | null {
+  const match = said.match(/hey\s+fish\s*bite(?:\s+i\s*\.?\s*q)?/i);
+  if (!match || match.index == null) return null;
+  return said.slice(match.index + match[0].length).replace(/^[\s,.:;-]+/, "").trim();
+}
+
 export function AdviseView({
   initial,
   rows,
@@ -45,6 +75,10 @@ export function AdviseView({
   const [species, setSpecies] = useState<Species | "">("Red Drum");
   const [area, setArea] = useState<Area | "">("");
   const [plan, setPlan] = useState("");
+  const [hearing, setHearing] = useState(false);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
+  const hearingRef = useRef(false);
+  const recRef = useRef<SpeechRec | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [conditions, setConditions] = useState<Conditions | null>(initial.ok ? initial : null);
   const [loading, setLoading] = useState(false);
@@ -149,6 +183,77 @@ export function AdviseView({
     setPlan("");
   }
 
+  function stopVoice() {
+    hearingRef.current = false;
+    setHearing(false);
+    const rec = recRef.current;
+    recRef.current = null;
+    try {
+      rec?.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+
+  function startVoice() {
+    const Ctor = speechCtor();
+    if (!Ctor) {
+      setVoiceNote("This phone can't hear a question in the browser. Type it instead.");
+      return;
+    }
+    stopVoice();
+    const rec = new Ctor();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    recRef.current = rec;
+    hearingRef.current = true;
+    setHearing(true);
+    setVoiceNote("Listening. Say Hey FishBite IQ, then the question.");
+    rec.onresult = (event) => {
+      let said = "";
+      for (let i = 0; i < event.results.length; i += 1) {
+        if (!event.results[i].isFinal) continue;
+        said += event.results[i][0]?.transcript ?? "";
+      }
+      const question = queryAfterWake(said);
+      if (question == null) return;
+      if (question.length < 3) {
+        setVoiceNote("Go ahead.");
+        return;
+      }
+      setVoiceNote(`Heard: ${question}`);
+      setPlan("");
+      stopVoice();
+      void submit(question, whenQuery(question, today));
+    };
+    rec.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setVoiceNote("The microphone is blocked. Allow it, or type the question.");
+        stopVoice();
+      }
+    };
+    rec.onend = () => {
+      if (!hearingRef.current || recRef.current !== rec) return;
+      window.setTimeout(() => {
+        if (!hearingRef.current || recRef.current !== rec) return;
+        try {
+          rec.start();
+        } catch {
+          /* the browser is still starting */
+        }
+      }, 300);
+    };
+    try {
+      rec.start();
+    } catch {
+      setVoiceNote("The microphone didn't start. Type the question instead.");
+      stopVoice();
+    }
+  }
+
+  useEffect(() => () => stopVoice(), []);
+
   const planAsk = (
     <>
       <form className="rounded-xl border border-border bg-surface p-4" onSubmit={askPlan}>
@@ -162,12 +267,24 @@ export function AdviseView({
             className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg"
           />
         </label>
-        <button
-          type="submit"
-          className="mt-3 h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
-        >
-          Find a time and place
-        </button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="submit"
+            className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
+          >
+            Find a time and place
+          </button>
+          {screen === "home" ? (
+            <button
+              type="button"
+              onClick={hearing ? stopVoice : startVoice}
+              className="h-11 rounded-lg border border-border px-4 text-sm font-semibold text-fg"
+            >
+              {hearing ? "Stop listening" : "Hey FishBite IQ"}
+            </button>
+          ) : null}
+        </div>
+        {screen === "home" && voiceNote ? <p className="mt-2 text-sm text-muted">{voiceNote}</p> : null}
       </form>
       {turns.map((turn) => (
         <AdviceCard
