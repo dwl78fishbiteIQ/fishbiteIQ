@@ -89,8 +89,8 @@ export function LogBook({
   const [importNote, setImportNote] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedGuide, setClearedGuide] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const backupInput = useRef<HTMLInputElement>(null);
   const rollInput = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(() => filterRows(rows, filter, waypoints), [rows, filter, waypoints]);
@@ -269,6 +269,18 @@ export function LogBook({
         />
       ) : clearedGuide ? (
         <ClearedGuide onDone={() => setClearedGuide(false)} />
+      ) : backupOpen ? (
+        <BackupPage
+          note={importNote}
+          onDownload={() =>
+            void exportBackup(rows, waypoints).catch(() => setImportNote("The backup could not be saved."))
+          }
+          onRestoreFile={(file) => void importBackup(file)}
+          onBack={() => {
+            setBackupOpen(false);
+            setImportNote(null);
+          }}
+        />
       ) : (
         <>
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -306,29 +318,14 @@ export function LogBook({
           </button>
           <button
             type="button"
-            onClick={() => void exportBackup(rows, waypoints).catch(() => setImportNote("The backup could not be saved."))}
-            className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
-          >
-            Download backup
-          </button>
-          <button
-            type="button"
-            onClick={() => backupInput.current?.click()}
-            className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
-          >
-            Restore backup
-          </button>
-          <input
-            ref={backupInput}
-            type="file"
-            accept=".zip,application/zip"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (file) void importBackup(file);
+            onClick={() => {
+              setImportNote(null);
+              setBackupOpen(true);
             }}
-          />
+            className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
+          >
+            Backup/Restore My Log
+          </button>
         </div>
       </div>
 
@@ -499,6 +496,64 @@ export function LogBook({
         </>
       )}
     </div>
+  );
+}
+
+function BackupPage({
+  note,
+  onDownload,
+  onRestoreFile,
+  onBack,
+}: {
+  note: string | null;
+  onDownload: () => void;
+  onRestoreFile: (file: File) => void;
+  onBack: () => void;
+}) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  return (
+    <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
+      <h2 className="text-3xl text-fg">Backup/Restore My Log</h2>
+      <p className="text-sm text-muted">
+        Download a copy of the trips, photos, and saved spots on this phone. Restore replaces the log on this
+        phone with a copy you saved earlier.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onDownload}
+          className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
+        >
+          Download backup
+        </button>
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
+        >
+          Restore backup
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".zip,application/zip"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) onRestoreFile(file);
+          }}
+        />
+      </div>
+      {note ? <p className="text-sm text-muted">{note}</p> : null}
+      <button
+        type="button"
+        onClick={onBack}
+        className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
+      >
+        Back to catch log
+      </button>
+    </section>
   );
 }
 
