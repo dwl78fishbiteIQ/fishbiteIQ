@@ -321,33 +321,33 @@ export function AdviseView({
       <form className="rounded-xl border border-border bg-surface p-4" onSubmit={askPlan}>
         <label className="text-sm text-muted" htmlFor={screen === "home" ? "plan-home" : "plan"}>
           Ask for a time and a place
-          <span className="relative mt-1 block">
-            <input
-              id={screen === "home" ? "plan-home" : "plan"}
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
-              placeholder="Best time and place Saturday for redfish?"
-              className="h-11 w-full rounded-lg border border-border bg-bg py-0 pr-3 pl-11 text-base text-fg"
-            />
-            <button
-              type="button"
-              aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
-              aria-pressed={hearing}
-              onClick={hearing ? stopVoice : startDictation}
-              className="absolute top-1/2 left-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
-            >
-              <Mic className="size-5" aria-hidden="true" />
-            </button>
-          </span>
         </label>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <span className="relative mt-1 block">
+          <input
+            id={screen === "home" ? "plan-home" : "plan"}
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+            placeholder="Best time and place Saturday for redfish?"
+            className="h-11 w-full rounded-lg border border-border bg-bg py-0 pr-28 pl-11 text-base text-fg"
+          />
+          <button
+            type="button"
+            aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
+            aria-pressed={hearing}
+            onClick={hearing ? stopVoice : startDictation}
+            className="absolute top-1/2 left-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
+          >
+            <Mic className="size-5" aria-hidden="true" />
+          </button>
           <button
             type="submit"
-            className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
+            className="absolute top-1/2 right-1 h-8 -translate-y-1/2 rounded-md bg-accent px-3 text-sm font-semibold text-accent-fg"
           >
-            Find a time and place
+            Continue
           </button>
-          {screen === "home" ? (
+        </span>
+        {screen === "home" ? (
+          <div className="mt-3">
             <button
               type="button"
               onClick={hearing ? stopVoice : startVoice}
@@ -362,8 +362,8 @@ export function AdviseView({
                 </>
               )}
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
         {screen === "home" && voiceNote ? <p className="mt-2 text-sm text-muted">{voiceNote}</p> : null}
       </form>
       {turns.map((turn) => (
@@ -441,31 +441,31 @@ export function AdviseView({
           >
             <label className="text-sm text-muted" htmlFor="plan">
               Ask for a time and a place
-              <span className="relative mt-1 block">
-                <input
-                  id="plan"
-                  value={plan}
-                  onChange={(e) => setPlan(e.target.value)}
-                  placeholder="Best time and place Saturday for redfish?"
-                  className="h-11 w-full rounded-lg border border-border bg-bg py-0 pr-3 pl-11 text-base text-fg"
-                />
-                <button
-                  type="button"
-                  aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
-                  aria-pressed={hearing}
-                  onClick={hearing ? stopVoice : startDictation}
-                  className="absolute top-1/2 left-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
-                >
-                  <Mic className="size-5" aria-hidden="true" />
-                </button>
-              </span>
             </label>
-            <button
-              type="submit"
-              className="mt-3 h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
-            >
-              Find a time and place
-            </button>
+            <span className="relative mt-1 block">
+              <input
+                id="plan"
+                value={plan}
+                onChange={(e) => setPlan(e.target.value)}
+                placeholder="Best time and place Saturday for redfish?"
+                className="h-11 w-full rounded-lg border border-border bg-bg py-0 pr-28 pl-11 text-base text-fg"
+              />
+              <button
+                type="button"
+                aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
+                aria-pressed={hearing}
+                onClick={hearing ? stopVoice : startDictation}
+                className="absolute top-1/2 left-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
+              >
+                <Mic className="size-5" aria-hidden="true" />
+              </button>
+              <button
+                type="submit"
+                className="absolute top-1/2 right-1 h-8 -translate-y-1/2 rounded-md bg-accent px-3 text-sm font-semibold text-accent-fg"
+              >
+                Continue
+              </button>
+            </span>
             {voiceNote ? <p className="mt-2 text-sm text-muted">{voiceNote}</p> : null}
           </form>
 
