@@ -186,25 +186,6 @@ export function AdviseView({
     <div className="space-y-4">
       {screen === "home" ? (
         <>
-          <section className="space-y-3">
-            <h2 className="text-2xl text-fg">Logo options</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(
-                [
-                  ["/logos/hook-wordmark.jpg", "1. Hook wordmark"],
-                  ["/logos/badge.jpg", "2. Badge"],
-                  ["/logos/hook-iq.jpg", "3. Hook and IQ"],
-                  ["/logos/stamp-fish-stroke.jpg", "4. Name inside the fish"],
-                ] as const
-              ).map(([src, label]) => (
-                <figure key={src} className="overflow-hidden rounded-xl border border-border bg-bg">
-                  <img src={src} alt={label} className="w-full" />
-                  <figcaption className="px-3 py-2 text-sm font-semibold text-fg">{label}</figcaption>
-                </figure>
-              ))}
-            </div>
-          </section>
-
           <PhotoDesk
             launch
             onOpenUpload={onOpenUpload}

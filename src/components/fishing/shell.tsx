@@ -85,14 +85,26 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold tracking-widest text-accent uppercase">
-              Mt. Pleasant · Charleston
-            </p>
-            <h1 className="mt-1 text-3xl leading-tight text-fg md:text-4xl">
-              FishBiteIQ
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4">
+          {view === "advise" ? (
+            <h1 className="flex justify-center">
+              <img src="/logos/header-logo.png" alt="FishBiteIQ" className="h-28 w-auto sm:h-36" />
             </h1>
+          ) : null}
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            {view === "advise" ? (
+              <p className="text-xs font-semibold tracking-widest text-accent uppercase">
+                Mt. Pleasant · Charleston
+              </p>
+            ) : (
+              <>
+                <p className="text-xs font-semibold tracking-widest text-accent uppercase">
+                  Mt. Pleasant · Charleston
+                </p>
+                <h1 className="mt-1 text-3xl leading-tight text-fg md:text-4xl">FishBiteIQ</h1>
+              </>
+            )}
             <p className="mt-1 max-w-xl text-sm text-muted">
               Ranks a spot and a tide from your catch log and the forecast. Thin data stays
               labeled as general.
@@ -125,6 +137,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
               </div>
             ) : null}
           </nav>
+          </div>
         </div>
       </header>
 
