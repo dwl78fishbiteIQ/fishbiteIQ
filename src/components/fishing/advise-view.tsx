@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Mic } from "lucide-react";
 import { AdviceCard } from "@/components/fishing/advice-card";
 import { BiteCalendar } from "@/components/fishing/bite-calendar";
 import { CatchMap } from "@/components/fishing/catch-map";
@@ -278,9 +279,16 @@ export function AdviseView({
             <button
               type="button"
               onClick={hearing ? stopVoice : startVoice}
-              className="h-11 rounded-lg border border-border px-4 text-sm font-semibold text-fg"
+              className="inline-flex h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm font-semibold text-fg"
             >
-              {hearing ? "Stop listening" : '"Hey FishbiteIQ . . ."'}
+              {hearing ? (
+                "Stop listening"
+              ) : (
+                <>
+                  <Mic className="size-4" aria-hidden="true" />
+                  "Hey FishbiteIQ . . ."
+                </>
+              )}
             </button>
           ) : null}
         </div>
