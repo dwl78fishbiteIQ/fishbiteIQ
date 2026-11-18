@@ -183,8 +183,12 @@ function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string })
         doubleClickZoom: false,
       });
       L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_56l7_1_5fea1cdef7e7db7fa70b39ed",
-        { maxZoom: 18, maxNativeZoom: 18 },
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19 },
+      ).addTo(map);
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19 },
       ).addTo(map);
       map.setView([lat, lng], 13);
       L.circleMarker([lat, lng], {

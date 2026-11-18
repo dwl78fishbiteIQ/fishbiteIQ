@@ -57,14 +57,15 @@ export function CatchMap({
       const L = mod.default ?? mod;
       const map = L.map(el, { zoomControl: true, attributionControl: true });
       L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_56l7_1_5fea1cdef7e7db7fa70b39ed",
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attribution/">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 20,
-          maxNativeZoom: 18,
+          attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
+          maxZoom: 19,
         },
+      ).addTo(map);
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19 },
       ).addTo(map);
       map.setView([32.78, -79.88], 11);
       map.on("click", (event) => clickRef.current(event.latlng.lat, event.latlng.lng));
