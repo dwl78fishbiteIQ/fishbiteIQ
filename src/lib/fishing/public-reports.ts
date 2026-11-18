@@ -3,7 +3,7 @@ import { loadConditions } from "@/lib/fishing/conditions";
 import { stageFromStation } from "@/lib/fishing/station";
 import { addDays, calendarDiff, degToWind, formatClock, formatPrettyDate, monthOf, todayInCharleston, windClose } from "@/lib/fishing/time";
 import type { BiteOutlook } from "@/lib/fishing/advisor";
-import type { Conditions, TideStage, WindDir } from "@/lib/fishing/types";
+import type { Advice, Conditions, TideStage, WindDir } from "@/lib/fishing/types";
 
 export type RecentTrip = {
   date: string;
@@ -75,6 +75,24 @@ export function publicOnlyOutlook(base: BiteOutlook, pulse: PublicPulse | null, 
     grade: "Good",
     window: `${formatClock(start)}–${formatClock(start + 180)}`,
     summary: `${pulse.prior} A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day. The catch log is not in this score.`,
+  };
+}
+
+export function applyReports(advice: Advice, pulse: PublicPulse | null, day: Conditions | null): Advice {
+  const match = pulse && day ? pulse.trips.find((trip) => sameWater(day, trip)) : undefined;
+  const line = !pulse
+    ? "Public fishing reports didn't load, so this projection is the catch log and the forecast only."
+    : !day
+      ? `${pulse.prior} No forecast loaded, so a recent report can't be matched to this day.`
+      : match
+        ? `${pulse.prior} A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day, so it supports the projection.`
+        : `${pulse.prior} No report from the last several days was fished in wind, water, and tide like this day, so the reports don't move the call.`;
+  return {
+    ...advice,
+    lede: `${advice.lede} ${line}`.trim(),
+    confidenceWhy: match
+      ? `${advice.confidenceWhy} A report from the last several days matches this wind, water, and tide.`
+      : advice.confidenceWhy,
   };
 }
 

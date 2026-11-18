@@ -5,7 +5,8 @@ import { BiteCalendar } from "@/components/fishing/bite-calendar";
 import { CatchMap } from "@/components/fishing/catch-map";
 import { PhotoDesk } from "@/components/fishing/photo-desk";
 import { advise, commonName, parseAsk, whenQuery, type Query } from "@/lib/fishing/advisor";
-import { liveConditions } from "@/lib/fishing/live";
+import { liveConditions, livePublicReports } from "@/lib/fishing/live";
+import { applyReports } from "@/lib/fishing/public-reports";
 import { todayInCharleston } from "@/lib/fishing/time";
 import type { Advice, Area, CatchRow, Conditions, ConditionsResult, Species } from "@/lib/fishing/types";
 import type { Waypoint } from "@/lib/fishing/waypoints";
@@ -159,7 +160,15 @@ export function AdviseView({
       query.kind === "predict" && screen === "when" ? { ...query, includeBait: true } : query;
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setTurns((current) => [
-      { id, prompt: trimmed, advice: null, pending: "Checking the catch log…" },
+      {
+        id,
+        prompt: trimmed,
+        advice: null,
+        pending:
+          asked.kind === "predict" || asked.kind === "when"
+            ? "Checking the catch log and fishing reports…"
+            : "Checking the catch log…",
+      },
       ...current,
     ]);
     if (asked.kind === "photo") {
@@ -170,7 +179,10 @@ export function AdviseView({
       if (asked.kind === "predict") setDate(asked.date);
       cond = await ensure(asked.date);
     }
-    const advice = advise(asked, rowsRef.current, cond, today, marksRef.current);
+    let advice = advise(asked, rowsRef.current, cond, today, marksRef.current);
+    if (asked.kind === "predict" || asked.kind === "when") {
+      advice = applyReports(advice, await livePublicReports(), cond);
+    }
     setTurns((current) =>
       current.map((turn) => (turn.id === id ? { ...turn, advice, pending: null } : turn)),
     );
