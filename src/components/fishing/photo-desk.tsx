@@ -226,7 +226,7 @@ export function PhotoDesk({
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
-          className="flex h-16 w-full items-center justify-center rounded-xl bg-accent px-4 text-center font-display text-2xl font-black text-accent-fg shadow-[0_10px_28px_rgb(224_138_60/0.28)]"
+          className="flex h-16 w-full items-center justify-center rounded-xl bg-accent px-4 text-center font-display text-2xl font-black text-accent-fg shadow-[0_10px_28px_rgb(224_138_60/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgb(224_138_60/0.42)] active:translate-y-0 active:brightness-100 motion-reduce:transition-none motion-reduce:hover:transform-none"
         >
           Upload Your Fish Photo!
         </button>
