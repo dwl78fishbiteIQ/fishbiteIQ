@@ -19,9 +19,19 @@ export function addPlaceLabels(L: typeof import("leaflet"), map: LeafletMap) {
   }
   const apply = () => {
     map.getContainer().dataset.labelZoom = labelZoom(map.getZoom());
+    map.getContainer().dataset.landingScale = scaleMiles(map) < 1 ? "in" : "out";
   };
-  map.on("zoom zoomend", apply);
+  map.on("zoom zoomend resize", apply);
   apply();
+}
+
+function scaleMiles(map: LeafletMap): number {
+  const width = map.getSize().x;
+  if (width < 1) return Number.POSITIVE_INFINITY;
+  const y = map.getSize().y / 2;
+  const left = map.containerPointToLatLng([0, y]);
+  const right = map.containerPointToLatLng([100, y]);
+  return map.distance(left, right) / 1609.344;
 }
 
 function labelZoom(zoom: number): string {

@@ -67,10 +67,6 @@
   border: none;
 }
 
-.leaflet-container[data-label-zoom="far"] .landing-label span {
-  display: none;
-}
-
 .leaflet-container[data-label-zoom="mid"] .landing-label span {
   font-size: 8px;
   opacity: 0.9;
@@ -100,15 +96,20 @@
 }
 
 .landing-label span {
-  color: #7ec8ff;
+  display: none;
+  color: #ff3b30;
   font-family: var(--font-sans);
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
   text-shadow:
-    0 0 4px #041018,
-    0 1px 2px #041018;
+    0 0 4px #1a0808,
+    0 1px 2px #1a0808;
+}
+
+.leaflet-container[data-landing-scale="in"] .landing-label span {
+  display: inline;
 }
 
 .catch-map,
