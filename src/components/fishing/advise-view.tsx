@@ -208,7 +208,7 @@ export function AdviseView({
 
           <section className="space-y-3">
             <div>
-              <h2 className="text-2xl text-fg">When & Where</h2>
+              <h2 className="text-3xl text-fg">When & Where</h2>
               <p className="text-sm text-muted">
                 Ask in your own words. The answer uses your catch log and the forecast for the day
                 you name.

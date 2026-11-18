@@ -60,7 +60,7 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
-      <h2 className="text-2xl text-fg">5-Day Hook Up Forecast</h2>
+      <h2 className="text-3xl text-fg">5-Day Hook Up Forecast</h2>
       <p className="mt-1 text-sm text-muted">
         {source === "reports"
           ? "Scored from Haddrell's Point, the other Charleston reports, the tide, and the forecast. The catch log is not used."
