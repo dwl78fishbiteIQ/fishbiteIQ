@@ -42,6 +42,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
   const [view, setView] = useState<View>("advise");
   const [menuOpen, setMenuOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
+  const [installHidden, setInstallHidden] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [mapReturn, setMapReturn] = useState<View | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -73,7 +74,10 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
 
   useEffect(() => {
     try {
-      if (localStorage.getItem("lfa-hide-install") === "1") return;
+      if (localStorage.getItem("lfa-hide-install") === "1") {
+        setInstallHidden(true);
+        return;
+      }
       const standalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -90,6 +94,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
     } catch {
       /* the popup can still close */
     }
+    setInstallHidden(true);
     setInstallOpen(false);
   }
 
@@ -112,15 +117,17 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           <h1 className="flex justify-center">
             <img src="/logos/header-logo.png" alt="FishBiteIQ" className="h-[6.3rem] w-auto sm:h-[8.1rem]" />
           </h1>
-          <div className="flex flex-col items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setInstallOpen(true)}
-              className="text-sm text-accent underline"
-            >
-              Add App to Your Phone
-            </button>
-          </div>
+          {installHidden ? null : (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setInstallOpen(true)}
+                className="text-sm text-accent underline"
+              >
+                Add App to Your Phone
+              </button>
+            </div>
+          )}
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold tracking-widest text-accent uppercase">
