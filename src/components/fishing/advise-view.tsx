@@ -194,7 +194,7 @@ export function AdviseView({
                   ["/logos/hook-wordmark.jpg", "1. Hook wordmark"],
                   ["/logos/badge.jpg", "2. Badge"],
                   ["/logos/hook-iq.jpg", "3. Hook and IQ"],
-                  ["/logos/stamp-small.jpg", "4. Stamp, smaller fish"],
+                  ["/logos/stamp-gray.jpg", "4. Gray fish behind the name"],
                 ] as const
               ).map(([src, label]) => (
                 <figure key={src} className="overflow-hidden rounded-xl border border-border bg-bg">
