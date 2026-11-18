@@ -17,6 +17,23 @@ import type { Waypoint } from "@/lib/fishing/waypoints";
 import { LogFilterBar } from "@/components/fishing/log-filters";
 import { cn } from "@/lib/cn";
 
+type RollItemStatus = "waiting" | "checking" | "logged" | "missing" | "not-fish" | "unreadable" | "duplicate";
+
+type RollItem = { name: string; status: RollItemStatus };
+
+type RollStatus = {
+  selected: number;
+  total: number;
+  done: number;
+  items: RollItem[];
+  summary: { uploaded: number; missing: number; notFish: number; unreadable: number; duplicates: number } | null;
+  error: string | null;
+};
+
+function photoName(file: File): string {
+  return (file.name.split("/").pop() || "Photo").replace(/\.[^.]+$/, "");
+}
+
 type RollHit = {
   index: number;
   file: File;
@@ -91,6 +108,7 @@ export function LogBook({
   const [manageOpen, setManageOpen] = useState(false);
   const [establishOpen, setEstablishOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [rollStatus, setRollStatus] = useState<RollStatus | null>(null);
 
   const shown = useMemo(() => filterRows(rows, filter, waypoints), [rows, filter, waypoints]);
   const groups = useMemo(() => {
@@ -134,25 +152,48 @@ export function LogBook({
 
   async function searchRoll(list: FileList | File[]) {
     setScanning(true);
-    setImportNote("Opening the photos you picked…");
+    setImportNote(null);
     const tidesByDate = new Map<string, TideEvent[] | null>();
+    const incoming = Array.from(list);
+    const selected = incoming.length;
+    let items: RollItem[] = incoming.map((file) => ({ name: photoName(file), status: "waiting" }));
+    const show = (
+      done: number,
+      summary: RollStatus["summary"] = null,
+      error: string | null = null,
+    ) => {
+      setRollStatus({
+        selected,
+        total: items.length,
+        done,
+        items: items.map((item) => ({ ...item })),
+        summary,
+        error,
+      });
+    };
+    show(0);
     try {
-      const files = await filesFromUpload(Array.from(list));
+      const files = await filesFromUpload(incoming);
+      items = files.map((file) => ({ name: photoName(file), status: "waiting" }));
       if (!files.length) {
-        setImportNote("No photos were selected.");
+        show(0, null, "No photos were selected.");
         return;
       }
+      show(0);
       const hits: RollHit[] = [];
       let skippedPlace = 0;
       let notFish = 0;
       let unreadable = 0;
       for (const [index, file] of files.entries()) {
-        setImportNote(`Checking photo ${index + 1} of ${files.length} for a fish, a time, and a location…`);
+        items[index] = { ...items[index], status: "checking" };
+        show(index);
         const meta = await readPhotoMeta(file);
         const stamp = meta.taken ? captureStamp(meta.taken) : null;
         const at = stamp ? takenMinutes(stamp.date, stamp.time) : null;
         if (!stamp?.date || !stamp.time || at == null || meta.lat == null || meta.lng == null) {
           skippedPlace += 1;
+          items[index] = { ...items[index], status: "missing" };
+          show(index + 1);
           continue;
         }
         let preview = "";
@@ -160,21 +201,30 @@ export function LogBook({
           preview = await shrinkPhoto(file);
         } catch {
           unreadable += 1;
+          items[index] = { ...items[index], status: "unreadable" };
+          show(index + 1);
           continue;
         }
         const result = await liveReadPhoto(preview);
         if (!result.ok) {
           if (/isn't available/i.test(result.message)) {
-            setImportNote(result.message);
+            items[index] = { ...items[index], status: "unreadable" };
+            show(index, null, result.message);
             return;
           }
           unreadable += 1;
+          items[index] = { ...items[index], status: "unreadable" };
+          show(index + 1);
           continue;
         }
         if (result.kind !== "catch") {
           notFish += 1;
+          items[index] = { ...items[index], status: "not-fish" };
+          show(index + 1);
           continue;
         }
+        items[index] = { ...items[index], status: "logged" };
+        show(index + 1);
         hits.push({
           index,
           file,
@@ -188,7 +238,13 @@ export function LogBook({
         });
       }
       const keptHits = keepClearest(hits);
-      const duplicates = hits.length - keptHits.length;
+      const kept = new Set(keptHits.map((hit) => hit.index));
+      let duplicates = 0;
+      for (const hit of hits) {
+        if (kept.has(hit.index)) continue;
+        duplicates += 1;
+        items[hit.index] = { ...items[hit.index], status: "duplicate" };
+      }
       const found: CatchRow[] = [];
       for (const hit of keptHits) {
         const minutes = clockToMinutes(hit.time);
@@ -218,7 +274,7 @@ export function LogBook({
           count: 1,
           lengthIn: length != null && length > 0 ? length : null,
           weightLb: null,
-          photoFilename: (hit.file.name.split("/").pop() || "photo").replace(/\.[^.]+$/, ""),
+          photoFilename: photoName(hit.file),
           notes: hit.read.setting,
           source: "you",
           lat: hit.lat,
@@ -232,23 +288,19 @@ export function LogBook({
         found.push(row);
       }
       if (found.length) {
-        const kept = sampleOnly ? [] : rows.filter((row) => row.source === "you");
-        onReplace([...found, ...kept]);
+        const yours = sampleOnly ? [] : rows.filter((row) => row.source === "you");
+        onReplace([...found, ...yours]);
       }
-      const skipped = [
-        skippedPlace ? `${skippedPlace} had no time or location` : "",
-        notFish ? `${notFish} did not show a fish` : "",
-        duplicates ? `${duplicates} taken within 10 minutes of a clearer shot` : "",
-        unreadable ? `${unreadable} could not be read` : "",
-      ].filter(Boolean);
-      setImportNote(
-        found.length
-          ? `Added ${found.length} fish photo${found.length === 1 ? "" : "s"} to the catch log.${skipped.length ? ` Skipped ${skipped.join(", ")}.` : ""}`
-          : `No fish photos with a time and a location were added.${skipped.length ? ` ${skipped.join(", ")}.` : ""}`,
-      );
+      show(files.length, {
+        uploaded: found.length,
+        missing: skippedPlace,
+        notFish,
+        unreadable,
+        duplicates,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
-      setImportNote(message || "Those photos could not be searched.");
+      show(items.filter((item) => item.status !== "waiting" && item.status !== "checking").length, null, message || "Those photos could not be searched.");
     } finally {
       setScanning(false);
     }
@@ -256,6 +308,7 @@ export function LogBook({
 
   return (
     <div className="space-y-4">
+      {rollStatus ? <RollWindow status={rollStatus} onClose={() => setRollStatus(null)} /> : null}
       {confirmClear ? (
         <ClearConfirm
           onCancel={() => setConfirmClear(false)}
@@ -533,6 +586,70 @@ function ManageData({
         Back to catch log
       </button>
     </section>
+  );
+}
+
+const ROLL_STATUS: Record<RollItemStatus, string> = {
+  waiting: "Waiting",
+  checking: "Checking…",
+  logged: "Logged",
+  missing: "Missing time or location",
+  "not-fish": "No fish in the photo",
+  unreadable: "Could not be read",
+  duplicate: "Same fish as a clearer photo",
+};
+
+function RollWindow({ status, onClose }: { status: RollStatus; onClose: () => void }) {
+  const running = status.summary == null && !status.error;
+  const pct = status.total ? Math.round((status.done / status.total) * 100) : 0;
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-4 sm:items-center">
+      <section className="flex max-h-[85dvh] w-full max-w-md flex-col gap-3 overflow-hidden rounded-xl border border-border bg-surface p-4">
+        <h2 className="text-2xl text-fg">Camera roll upload</h2>
+        <p className="text-sm text-fg">
+          {status.selected} photo{status.selected === 1 ? "" : "s"} selected
+          {status.total !== status.selected ? ` · ${status.total} can be checked` : ""}
+        </p>
+        <div className="h-2 overflow-hidden rounded-full bg-bg">
+          <div className="h-full bg-accent" style={{ width: `${running ? Math.max(pct, 4) : pct}%` }} />
+        </div>
+        <p className="text-sm text-muted">
+          {running ? `Checking photo ${Math.min(status.done + 1, status.total)} of ${status.total}` : `${status.done} of ${status.total} checked`}
+        </p>
+        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+          {status.items.map((item, index) => (
+            <li key={`${item.name}-${index}`} className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="truncate text-fg">{item.name}</span>
+              <span className={item.status === "missing" ? "shrink-0 text-danger" : "shrink-0 text-muted"}>
+                {ROLL_STATUS[item.status]}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {status.error ? <p className="text-sm text-danger">{status.error}</p> : null}
+        {status.summary ? (
+          <div className="space-y-1 text-sm text-fg">
+            <p>{status.summary.uploaded} uploaded to the catch log.</p>
+            <p className="text-danger">
+              {status.summary.missing} failed because the time or location was missing.
+            </p>
+            {status.summary.notFish ? <p className="text-muted">{status.summary.notFish} did not show a fish.</p> : null}
+            {status.summary.unreadable ? <p className="text-muted">{status.summary.unreadable} could not be read.</p> : null}
+            {status.summary.duplicates ? (
+              <p className="text-muted">{status.summary.duplicates} were the same fish as a clearer photo.</p>
+            ) : null}
+          </div>
+        ) : null}
+        <button
+          type="button"
+          disabled={running}
+          onClick={onClose}
+          className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
+        >
+          {running ? "Uploading…" : "Done"}
+        </button>
+      </section>
+    </div>
   );
 }
 
