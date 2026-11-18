@@ -4,13 +4,14 @@ import { exportBackup, installBackup, readBackup } from "@/lib/fishing/backup";
 import { moonOn } from "@/lib/fishing/moon";
 import { meteoLines } from "@/lib/fishing/photo-weather";
 import { filesFromUpload, rowFromPhoto, shrinkPhoto, speciesFromPhoto } from "@/lib/fishing/import-log";
+import { liveConditions, liveReadPhoto } from "@/lib/fishing/live";
+import { captureStamp, readPhotoMeta } from "@/lib/fishing/photo-meta";
+import { hoursAfterTurn, noaaPhotoLink, stageFromStation, tidePhrase } from "@/lib/fishing/station";
 import { EMPTY_FILTER, filterRows, type LogFilter } from "@/lib/fishing/log-filter";
 import { clearPhotos, loadPhoto, savePhoto } from "@/lib/fishing/photos";
 import { spotById } from "@/lib/fishing/spots";
-import { liveConditions } from "@/lib/fishing/live";
-import { hoursAfterTurn, noaaPhotoLink, tidePhrase } from "@/lib/fishing/station";
 import { clockToMinutes, formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
-import type { CatchRow, Species, TideStage, WindDir } from "@/lib/fishing/types";
+import type { CatchRow, Species, TideEvent, TideStage, WindDir } from "@/lib/fishing/types";
 import { SPECIES, TIDE_STAGES, WIND_DIRS } from "@/lib/fishing/types";
 import type { Waypoint } from "@/lib/fishing/waypoints";
 import { LogFilterBar } from "@/components/fishing/log-filters";
@@ -52,8 +53,10 @@ export function LogBook({
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedGuide, setClearedGuide] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const backupInput = useRef<HTMLInputElement>(null);
   const zipInput = useRef<HTMLInputElement>(null);
+  const rollInput = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(() => filterRows(rows, filter, waypoints), [rows, filter, waypoints]);
   const groups = useMemo(() => {
@@ -134,6 +137,110 @@ export function LogBook({
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       setImportNote(message || "That backup could not be read.");
+    }
+  }
+
+  async function searchRoll(list: FileList) {
+    setScanning(true);
+    setImportNote("Opening the photos you picked…");
+    const tidesByDate = new Map<string, TideEvent[] | null>();
+    try {
+      const files = await filesFromUpload(list);
+      if (!files.length) {
+        setImportNote("No photos were selected.");
+        return;
+      }
+      const found: CatchRow[] = [];
+      let skippedPlace = 0;
+      let notFish = 0;
+      let unreadable = 0;
+      for (const [index, file] of files.entries()) {
+        setImportNote(`Checking photo ${index + 1} of ${files.length} for a fish, a time, and a location…`);
+        const meta = await readPhotoMeta(file);
+        const stamp = meta.taken ? captureStamp(meta.taken) : null;
+        if (!stamp?.date || !stamp.time || meta.lat == null || meta.lng == null) {
+          skippedPlace += 1;
+          continue;
+        }
+        let preview = "";
+        try {
+          preview = await shrinkPhoto(file);
+        } catch {
+          unreadable += 1;
+          continue;
+        }
+        const result = await liveReadPhoto(preview);
+        if (!result.ok) {
+          if (/isn't available/i.test(result.message)) {
+            setImportNote(result.message);
+            return;
+          }
+          unreadable += 1;
+          continue;
+        }
+        if (result.kind !== "catch") {
+          notFish += 1;
+          continue;
+        }
+        const minutes = clockToMinutes(stamp.time);
+        if (!tidesByDate.has(stamp.date)) {
+          const conditions = await liveConditions(stamp.date).catch(() => null);
+          tidesByDate.set(stamp.date, conditions && conditions.ok ? conditions.tides : null);
+        }
+        const tides = tidesByDate.get(stamp.date) ?? null;
+        const stage = tides && minutes != null ? stageFromStation(tides, minutes) : null;
+        const turn = tides && minutes != null ? hoursAfterTurn(tides, minutes) : null;
+        const length = result.lengthHigh ?? result.lengthLow;
+        const row: CatchRow = {
+          id: `roll-${Date.now()}-${index}`,
+          date: stamp.date,
+          startTime: stamp.time,
+          endTime: "",
+          spotId: "",
+          tideStage: stage ?? "outgoing",
+          tideHours: turn?.hours ?? null,
+          tideTurn: turn?.turn ?? "",
+          waterTempF: null,
+          airTempF: null,
+          windDir: "",
+          windMph: null,
+          bait: "",
+          species: (result.species ?? "") as Species | "",
+          count: 1,
+          lengthIn: length != null && length > 0 ? length : null,
+          weightLb: null,
+          photoFilename: (file.name.split("/").pop() || "photo").replace(/\.[^.]+$/, ""),
+          notes: result.setting,
+          source: "you",
+          lat: meta.lat,
+          lng: meta.lng,
+        };
+        try {
+          await savePhoto(row.id, preview);
+        } catch {
+          /* the trip can still be saved without the stored photo */
+        }
+        found.push(row);
+      }
+      if (found.length) {
+        const kept = sampleOnly ? [] : rows.filter((row) => row.source === "you");
+        onReplace([...found, ...kept]);
+      }
+      const skipped = [
+        skippedPlace ? `${skippedPlace} had no time or location` : "",
+        notFish ? `${notFish} did not show a fish` : "",
+        unreadable ? `${unreadable} could not be read` : "",
+      ].filter(Boolean);
+      setImportNote(
+        found.length
+          ? `Added ${found.length} fish photo${found.length === 1 ? "" : "s"} to the catch log.${skipped.length ? ` Skipped ${skipped.join(", ")}.` : ""}`
+          : `No fish photos with a time and a location were added.${skipped.length ? ` ${skipped.join(", ")}.` : ""}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      setImportNote(message || "Those photos could not be searched.");
+    } finally {
+      setScanning(false);
     }
   }
 
@@ -237,6 +344,33 @@ export function LogBook({
             }}
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <button
+          type="button"
+          disabled={scanning}
+          onClick={() => rollInput.current?.click()}
+          className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
+        >
+          {scanning ? "Searching photos…" : "Search camera roll"}
+        </button>
+        <p className="text-sm text-muted">
+          Pick the photos to search. A phone will not open the whole camera roll by itself. A photo is added only
+          when it shows a fish and the file still has the time and the location.
+        </p>
+        <input
+          ref={rollInput}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            const list = event.target.files;
+            event.target.value = "";
+            if (list?.length) void searchRoll(list);
+          }}
+        />
       </div>
 
       <LogFilterBar
