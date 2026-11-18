@@ -50,6 +50,7 @@ export function LogBook({
   const [openId, setOpenId] = useState<string | null>(null);
   const [importNote, setImportNote] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [clearedGuide, setClearedGuide] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const backupInput = useRef<HTMLInputElement>(null);
   const zipInput = useRef<HTMLInputElement>(null);
@@ -138,6 +139,20 @@ export function LogBook({
 
   return (
     <div className="space-y-4">
+      {confirmClear ? (
+        <ClearConfirm
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={() => {
+            onClear();
+            setConfirmClear(false);
+            setClearedGuide(true);
+            setImportNote(null);
+          }}
+        />
+      ) : clearedGuide ? (
+        <ClearedGuide onDone={() => setClearedGuide(false)} />
+      ) : (
+        <>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-3xl text-fg">Catch log</h2>
@@ -233,30 +248,6 @@ export function LogBook({
           setOpenSpecies(next.species || null);
         }}
       />
-
-      {confirmClear ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm">
-          <p className="text-fg">Clear every trip and photo in this log?</p>
-          <button
-            type="button"
-            onClick={() => {
-              onClear();
-              setConfirmClear(false);
-              setImportNote("Log cleared.");
-            }}
-            className="h-11 rounded-lg bg-danger px-3 font-semibold text-danger-fg"
-          >
-            Yes, clear it
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmClear(false)}
-            className="h-11 rounded-lg border border-border px-3 text-fg"
-          >
-            Keep the catch log
-          </button>
-        </div>
-      ) : null}
 
       <div
         onDragOver={(e) => {
@@ -405,7 +396,66 @@ export function LogBook({
       {shown.length === 0 ? (
         <p className="text-sm text-muted">No trips match that filter.</p>
       ) : null}
+        </>
+      )}
     </div>
+  );
+}
+
+function ClearConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
+      <h2 className="text-3xl text-fg">Clear the catch log?</h2>
+      <p className="text-sm text-muted">
+        This removes every trip and photo saved on this phone. It cannot be undone.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="h-11 rounded-lg bg-danger px-4 text-sm font-semibold text-danger-fg"
+        >
+          Clear the log
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
+        >
+          Cancel
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function ClearedGuide({ onDone }: { onDone: () => void }) {
+  return (
+    <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
+      <h2 className="text-3xl text-fg">Log cleared</h2>
+      <p className="text-sm text-fg">
+        The old trips are gone. Upload the original photos of those catches to start a new book. Each
+        confirmed photo becomes a trip, and the advice starts using it.
+      </p>
+      <ol className="list-decimal space-y-2 pl-5 text-sm text-muted">
+        <li>Use the photos from the camera roll. A text, a social post, a screenshot, or an edited copy usually has no location and no time taken.</li>
+        <li>
+          Turn location on before you rely on older pictures. iPhone: Settings, Privacy & Security, Location
+          Services, Camera, set to While Using the App, and turn Precise Location on. Settings, Camera, Formats:
+          Most Compatible. Android: turn the phone Location on, and turn location tags on in the camera.
+        </li>
+        <li>Go to Home and tap Upload Your Fish Photo. Pick one original photo.</li>
+        <li>Confirm the bait, the species, the length, and the map pin. Then tap Confirm My Catch.</li>
+        <li>Repeat for each older photo. The new catch log is those confirmed trips.</li>
+      </ol>
+      <button
+        type="button"
+        onClick={onDone}
+        className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
+      >
+        Back to catch log
+      </button>
+    </section>
   );
 }
 
