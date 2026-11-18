@@ -41,6 +41,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
   const marks = useWaypoints();
   const [view, setView] = useState<View>("advise");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [mapReturn, setMapReturn] = useState<View | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -89,6 +90,16 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           <h1 className="flex justify-center">
             <img src="/logos/header-logo.png" alt="FishBiteIQ" className="h-[6.3rem] w-auto sm:h-[8.1rem]" />
           </h1>
+          <div className="flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setInstallOpen((open) => !open)}
+              className="text-sm text-accent underline"
+            >
+              Add App to Your Phone
+            </button>
+            {installOpen ? <InstallSteps /> : null}
+          </div>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold tracking-widest text-accent uppercase">
@@ -231,6 +242,31 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
         {view === "spots" ? <SpotGuide /> : null}
         {view === "season" ? <SeasonBoard rows={log.rows} /> : null}
       </main>
+    </div>
+  );
+}
+
+function InstallSteps() {
+  return (
+    <div className="w-full max-w-xl space-y-3 rounded-xl border border-border bg-surface p-4 text-sm">
+      <div>
+        <h2 className="text-base text-fg">iPhone</h2>
+        <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
+          <li>Open this site in Safari. Chrome on an iPhone cannot add it.</li>
+          <li>Tap the Share button, the square with the arrow.</li>
+          <li>Scroll down and tap Add to Home Screen.</li>
+          <li>Tap Add. The FishBiteIQ icon then opens like an app.</li>
+        </ol>
+      </div>
+      <div>
+        <h2 className="text-base text-fg">Android</h2>
+        <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
+          <li>Open this site in Chrome.</li>
+          <li>Tap the menu, the three dots at the top.</li>
+          <li>Tap Install app, or Add to Home screen.</li>
+          <li>Tap Install. The FishBiteIQ icon then opens like an app.</li>
+        </ol>
+      </div>
     </div>
   );
 }
