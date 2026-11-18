@@ -62,36 +62,13 @@
   }
 }
 
-.leaflet-div-icon.water-label,
 .leaflet-div-icon.landing-label {
   background: transparent;
   border: none;
 }
 
-.water-label span {
-  display: block;
-  color: #d7f4ff;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-align: center;
-  text-transform: uppercase;
-  white-space: nowrap;
-  text-shadow:
-    0 0 4px #041018,
-    0 1px 2px #041018;
-}
-
-.leaflet-container[data-label-zoom="far"] .water-label,
 .leaflet-container[data-label-zoom="far"] .landing-label span {
   display: none;
-}
-
-.leaflet-container[data-label-zoom="mid"] .water-label span {
-  font-size: 9px;
-  opacity: 0.8;
 }
 
 .leaflet-container[data-label-zoom="mid"] .landing-label span {
@@ -99,18 +76,8 @@
   opacity: 0.9;
 }
 
-.leaflet-container[data-label-zoom="near"] .water-label span {
-  font-size: 11px;
-  opacity: 1;
-}
-
 .leaflet-container[data-label-zoom="near"] .landing-label span {
   font-size: 9px;
-  opacity: 1;
-}
-
-.leaflet-container[data-label-zoom="close"] .water-label span {
-  font-size: 14px;
   opacity: 1;
 }
 
