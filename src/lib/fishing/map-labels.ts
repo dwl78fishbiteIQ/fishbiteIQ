@@ -8,8 +8,8 @@ export function addPlaceLabels(L: typeof import("leaflet"), map: LeafletMap) {
       icon: L.divIcon({
         className: "water-label",
         html: `<span>${escapeHtml(water.name)}</span>`,
-        iconSize: [140, 16],
-        iconAnchor: [70, 8],
+        iconSize: [160, 20],
+        iconAnchor: [80, 10],
       }),
       interactive: false,
       keyboard: false,
@@ -20,13 +20,25 @@ export function addPlaceLabels(L: typeof import("leaflet"), map: LeafletMap) {
       icon: L.divIcon({
         className: "landing-label",
         html: `<span class="landing-dot"></span><span>${escapeHtml(landing.name)}</span>`,
-        iconSize: [150, 18],
-        iconAnchor: [7, 9],
+        iconSize: [170, 20],
+        iconAnchor: [7, 10],
       }),
       interactive: false,
       keyboard: false,
     }).addTo(map);
   }
+  const apply = () => {
+    map.getContainer().dataset.labelZoom = labelZoom(map.getZoom());
+  };
+  map.on("zoom zoomend", apply);
+  apply();
+}
+
+function labelZoom(zoom: number): string {
+  if (zoom < 11) return "far";
+  if (zoom < 13) return "mid";
+  if (zoom < 15) return "near";
+  return "close";
 }
 
 function escapeHtml(value: string): string {

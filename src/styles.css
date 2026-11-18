@@ -84,6 +84,29 @@
     0 1px 2px #041018;
 }
 
+.leaflet-container[data-label-zoom="far"] .water-label,
+.leaflet-container[data-label-zoom="far"] .landing-label span:last-child {
+  display: none;
+}
+
+.leaflet-container[data-label-zoom="mid"] .water-label span,
+.leaflet-container[data-label-zoom="mid"] .landing-label span:last-child {
+  font-size: 9px;
+  opacity: 0.8;
+}
+
+.leaflet-container[data-label-zoom="near"] .water-label span,
+.leaflet-container[data-label-zoom="near"] .landing-label span:last-child {
+  font-size: 11px;
+  opacity: 1;
+}
+
+.leaflet-container[data-label-zoom="close"] .water-label span,
+.leaflet-container[data-label-zoom="close"] .landing-label span:last-child {
+  font-size: 14px;
+  opacity: 1;
+}
+
 .landing-label {
   display: flex;
   align-items: center;
