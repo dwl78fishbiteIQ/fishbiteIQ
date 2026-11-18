@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { readMarks, resolveSpecies } from "@/lib/fishing/species-id";
 import type { PhotoResult, Species } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
 
@@ -33,14 +34,19 @@ species: one of ${SPECIES.map((s) => `"${s}"`).join(", ")} or null
 speciesAlt: same list or null when a lookalike is plausible
 confidence: "high", "medium", or "low"
 features: up to 4 short visible traits
+marks: an object of booleans, true only when that trait is visible:
+  tailSpot (one black spot at the base of the tail),
+  backSpots (dark spots scattered on the back),
+  tailSpots (dark spots on the tail itself, not a single base spot),
+  canineTeeth (two large fangs),
+  bothEyesOneSide,
+  verticalStripes,
+  humanTeeth (incisors like a sheep),
+  chinBarbels
 lengthLow and lengthHigh: inch numbers or null, always a range
 lengthBasis: what you used (measuring board, hand, cooler, rod, deck) or "no reference in frame"
 setting: one or two sentences on structure, water color or clarity, bait, birds, current lines, and light. Do not name local spots. Do not invent GPS, tide stage, weather, or time unless a clock is printed on the image.
-Rules:
-- black tail spot = Red Drum
-- dark spots on the back and tail and two canine teeth = Spotted Seatrout
-- both eyes on one side = Flounder
-- vertical black stripes and human-like teeth = Sheepshead
+Report the marks you can see. Do not name a species from a guess when the marks are absent.
 If two species are easily confused, set speciesAlt and lower confidence.
 Never treat a length estimate as a legal measurement.
 If you cannot tell, use confidence low and species null.`;
@@ -125,12 +131,19 @@ function normalize(value: unknown): PhotoResult {
   const features = Array.isArray(row.features)
     ? row.features.filter((f): f is string => typeof f === "string").slice(0, 4)
     : [];
-  return {
-    ok: true,
-    kind,
+  const named = resolveSpecies({
     species: asSpecies(row.species),
     speciesAlt: asSpecies(row.speciesAlt),
     confidence,
+    features,
+    marks: readMarks(row.marks),
+  });
+  return {
+    ok: true,
+    kind,
+    species: named.species,
+    speciesAlt: named.speciesAlt,
+    confidence: named.confidence,
     features,
     lengthLow: asInches(row.lengthLow),
     lengthHigh: asInches(row.lengthHigh),
