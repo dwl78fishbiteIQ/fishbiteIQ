@@ -118,11 +118,11 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             <img src="/logos/header-logo.png" alt="FishBiteIQ" className="h-[6.3rem] w-auto sm:h-[8.1rem]" />
           </h1>
           {installHidden ? null : (
-            <div className="flex justify-center">
+            <div className="-my-2 flex justify-center">
               <button
                 type="button"
                 onClick={() => setInstallOpen(true)}
-                className="rounded-md border-2 border-accent bg-danger px-5 py-2.5 font-display text-sm font-semibold tracking-wide text-white shadow-[0_8px_20px_rgb(196_54_44/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_24px_rgb(196_54_44/0.4)] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:transform-none"
+                className="rounded-md border-2 border-accent bg-danger px-3 py-1 font-display text-sm font-semibold tracking-wide text-white shadow-[0_6px_14px_rgb(196_54_44/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_10px_18px_rgb(196_54_44/0.4)] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:transform-none"
               >
                 Add App to Your Phone
               </button>
