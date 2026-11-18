@@ -130,10 +130,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           )}
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-accent uppercase">
-              Mt. Pleasant · Charleston
-            </p>
-            <p className="mt-1 max-w-xl text-sm text-muted">
+            <p className="max-w-xl text-sm text-muted">
               Ranks a spot and a tide from your catch log and the forecast. Thin data stays
               labeled as general.
             </p>
