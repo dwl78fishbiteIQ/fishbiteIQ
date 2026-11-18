@@ -122,7 +122,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
               <button
                 type="button"
                 onClick={() => setInstallOpen(true)}
-                className="text-sm text-accent underline"
+                className="bg-accent px-4 py-2 text-sm font-semibold text-white"
               >
                 Add App to Your Phone
               </button>
