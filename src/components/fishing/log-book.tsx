@@ -552,9 +552,10 @@ function EstablishPage({
     <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
       <h2 className="text-3xl text-fg">Establish My Initial Catch Log From Previous Photos</h2>
       <p className="text-sm text-muted">
-        Pick the photos to search. A phone will not open the whole camera roll by itself. A photo is added only
-        when it shows a fish and the file still has the time and the location. Shots of the same fish within 10
-        minutes count as one catch, and the clearest one is kept.
+        Tap Search camera roll, then choose Select All on the photo screen. You do not pick the fish one by one.
+        The app looks through the photos you allow and keeps only the ones that show a fish and still have a time
+        and a location. A phone will not open the roll until those photos are allowed. Shots of the same fish
+        within 10 minutes count as one catch, and the clearest one is kept.
       </p>
       <button
         type="button"
