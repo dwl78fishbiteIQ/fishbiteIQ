@@ -149,10 +149,62 @@ export function AdviseView({
     setPlan("");
   }
 
+  const planAsk = (
+    <>
+      <form className="rounded-xl border border-border bg-surface p-4" onSubmit={askPlan}>
+        <label className="text-sm text-muted" htmlFor={screen === "home" ? "plan-home" : "plan"}>
+          Ask for a time and a place
+          <input
+            id={screen === "home" ? "plan-home" : "plan"}
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+            placeholder="Best time and place Saturday for redfish?"
+            className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg"
+          />
+        </label>
+        <button
+          type="submit"
+          className="mt-3 h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
+        >
+          Find a time and place
+        </button>
+      </form>
+      {turns.map((turn) => (
+        <AdviceCard
+          key={turn.id}
+          prompt={turn.prompt}
+          advice={turn.advice}
+          pending={turn.pending}
+          onAsk={(prompt) => void submit(prompt)}
+          onOpenTrip={onOpenTrip}
+        />
+      ))}
+    </>
+  );
+
   return (
     <div className="space-y-4">
       {screen === "home" ? (
         <>
+          <section className="space-y-3">
+            <h2 className="text-2xl text-fg">Logo options</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  ["/logos/hook-wordmark.jpg", "1. Hook wordmark"],
+                  ["/logos/badge.jpg", "2. Badge"],
+                  ["/logos/hook-iq.jpg", "3. Hook and IQ"],
+                  ["/logos/stamp.jpg", "4. Stamp"],
+                ] as const
+              ).map(([src, label]) => (
+                <figure key={src} className="overflow-hidden rounded-xl border border-border bg-bg">
+                  <img src={src} alt={label} className="w-full" />
+                  <figcaption className="px-3 py-2 text-sm font-semibold text-fg">{label}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+
           <PhotoDesk
             launch
             onOpenUpload={onOpenUpload}
@@ -172,6 +224,17 @@ export function AdviseView({
               onShowPlan();
             }}
           />
+
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-2xl text-fg">When & Where</h2>
+              <p className="text-sm text-muted">
+                Ask in your own words. The answer uses your catch log and the forecast for the day
+                you name.
+              </p>
+            </div>
+            {planAsk}
+          </section>
 
           <BiteCalendar rows={rows} />
 
