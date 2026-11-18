@@ -548,23 +548,65 @@ function EstablishPage({
   onBack: () => void;
 }) {
   const rollInput = useRef<HTMLInputElement>(null);
+  const albumInput = useRef<HTMLInputElement>(null);
+  const [albumOk, setAlbumOk] = useState(false);
+  useEffect(() => {
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const probe = document.createElement("input");
+    setAlbumOk(!ios && "webkitdirectory" in probe);
+  }, []);
   return (
     <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
       <h2 className="text-3xl text-fg">Establish My Initial Catch Log From Previous Photos</h2>
       <p className="text-sm text-muted">
-        Tap Search camera roll, then choose Select All on the photo screen. You do not pick the fish one by one.
-        The app looks through the photos you allow and keeps only the ones that show a fish and still have a time
-        and a location. A phone will not open the roll until those photos are allowed. Shots of the same fish
-        within 10 minutes count as one catch, and the clearest one is kept.
+        {albumOk
+          ? "Choose an album and every photo in that folder is included. You do not pick them one by one. The app then keeps only the ones that show a fish and still have a time and a location."
+          : "An iPhone will not hand over a whole Photos album. Tap Search camera roll, open the album, then tap Select All. The app keeps only the photos that show a fish and still have a time and a location."}{" "}
+        Shots of the same fish within 10 minutes count as one catch, and the clearest one is kept.
       </p>
-      <button
-        type="button"
-        disabled={scanning}
-        onClick={() => rollInput.current?.click()}
-        className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
-      >
-        {scanning ? "Searching photos…" : "Search camera roll"}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        {albumOk ? (
+          <button
+            type="button"
+            disabled={scanning}
+            onClick={() => {
+              const input = albumInput.current;
+              if (!input) return;
+              input.setAttribute("webkitdirectory", "");
+              input.setAttribute("directory", "");
+              input.click();
+            }}
+            className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
+          >
+            {scanning ? "Searching photos…" : "Choose an album"}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          disabled={scanning}
+          onClick={() => rollInput.current?.click()}
+          className={
+            albumOk
+              ? "h-11 rounded-lg border border-border px-4 text-sm font-semibold text-fg disabled:opacity-50"
+              : "h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
+          }
+        >
+          {scanning ? "Searching photos…" : "Search camera roll"}
+        </button>
+      </div>
+      <input
+        ref={albumInput}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          const list = event.target.files;
+          event.target.value = "";
+          if (list?.length) onFiles(list);
+        }}
+      />
       <input
         ref={rollInput}
         type="file"
