@@ -71,6 +71,28 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
     })();
   }, [log.ready, log.rows]);
 
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("lfa-hide-install") === "1") return;
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      if (standalone) return;
+    } catch {
+      return;
+    }
+    setInstallOpen(true);
+  }, []);
+
+  function hideInstallForever() {
+    try {
+      localStorage.setItem("lfa-hide-install", "1");
+    } catch {
+      /* the popup can still close */
+    }
+    setInstallOpen(false);
+  }
+
   function openLog(id: string, backTo: View | null) {
     setHighlight(id);
     setMapReturn(backTo);
@@ -93,12 +115,11 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           <div className="flex flex-col items-center gap-3">
             <button
               type="button"
-              onClick={() => setInstallOpen((open) => !open)}
+              onClick={() => setInstallOpen(true)}
               className="text-sm text-accent underline"
             >
               Add App to Your Phone
             </button>
-            {installOpen ? <InstallSteps /> : null}
           </div>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -140,6 +161,8 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           </div>
         </div>
       </header>
+
+      {installOpen ? <InstallPopup onClose={() => setInstallOpen(false)} onNever={hideInstallForever} /> : null}
 
       <main className="mx-auto max-w-5xl px-4 pt-4 pb-10">
         {view === "advise" || view === "when" ? (
@@ -246,27 +269,53 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
   );
 }
 
-function InstallSteps() {
+function InstallPopup({ onClose, onNever }: { onClose: () => void; onNever: () => void }) {
   return (
-    <div className="w-full max-w-xl space-y-3 rounded-xl border border-border bg-surface p-4 text-sm">
-      <div>
-        <h2 className="text-base text-fg">iPhone</h2>
-        <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
-          <li>Open this site in Safari. Chrome on an iPhone cannot add it.</li>
-          <li>Tap the Share button, the square with the arrow.</li>
-          <li>Scroll down and tap Add to Home Screen.</li>
-          <li>Tap Add. The FishBiteIQ icon then opens like an app.</li>
-        </ol>
-      </div>
-      <div>
-        <h2 className="text-base text-fg">Android</h2>
-        <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
-          <li>Open this site in Chrome.</li>
-          <li>Tap the menu, the three dots at the top.</li>
-          <li>Tap Install app, or Add to Home screen.</li>
-          <li>Tap Install. The FishBiteIQ icon then opens like an app.</li>
-        </ol>
-      </div>
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-4 sm:items-center">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="install-title"
+        className="max-h-[85dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-xl border border-border bg-surface p-4 text-sm"
+      >
+        <h2 id="install-title" className="text-2xl text-fg">
+          Add App to Your Phone
+        </h2>
+        <div>
+          <h3 className="text-base text-fg">iPhone</h3>
+          <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
+            <li>Open this site in Safari. Chrome on an iPhone cannot add it.</li>
+            <li>Tap the Share button, the square with the arrow.</li>
+            <li>Scroll down and tap Add to Home Screen.</li>
+            <li>Tap Add. The FishBiteIQ icon then opens like an app.</li>
+          </ol>
+        </div>
+        <div>
+          <h3 className="text-base text-fg">Android</h3>
+          <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
+            <li>Open this site in Chrome.</li>
+            <li>Tap the menu, the three dots at the top.</li>
+            <li>Tap Install app, or Add to Home screen.</li>
+            <li>Tap Install. The FishBiteIQ icon then opens like an app.</li>
+          </ol>
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={onNever}
+            className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
+          >
+            Don't show this to me again
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
