@@ -209,7 +209,7 @@ export function AdviseView({
     recRef.current = rec;
     hearingRef.current = true;
     setHearing(true);
-    setVoiceNote("Listening. Say Hey FishBite IQ, then the question.");
+    setVoiceNote('Listening. Say "Hey FishbiteIQ . . ." then the question.');
     rec.onresult = (event) => {
       let said = "";
       for (let i = 0; i < event.results.length; i += 1) {
@@ -280,7 +280,7 @@ export function AdviseView({
               onClick={hearing ? stopVoice : startVoice}
               className="h-11 rounded-lg border border-border px-4 text-sm font-semibold text-fg"
             >
-              {hearing ? "Stop listening" : "Hey FishBite IQ"}
+              {hearing ? "Stop listening" : '"Hey FishbiteIQ . . ."'}
             </button>
           ) : null}
         </div>
