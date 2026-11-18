@@ -124,7 +124,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
                 onClick={() => setInstallOpen(true)}
                 className="rounded-md border-2 border-accent bg-danger px-3 py-1 font-display text-sm font-semibold tracking-wide text-white shadow-[0_6px_14px_rgb(196_54_44/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_10px_18px_rgb(196_54_44/0.4)] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:transform-none"
               >
-                Add App to Your Phone
+                Add FishBiteIQ App to your phone
               </button>
             </div>
           )}
@@ -286,7 +286,7 @@ function InstallPopup({ onClose, onNever }: { onClose: () => void; onNever: () =
         className="max-h-[85dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-xl border border-border bg-surface p-4 text-sm"
       >
         <h2 id="install-title" className="text-2xl text-fg">
-          Add App to Your Phone
+          Add FishBiteIQ App to your phone
         </h2>
         <div>
           <h3 className="text-base text-fg">iPhone</h3>
