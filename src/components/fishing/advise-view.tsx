@@ -327,14 +327,14 @@ export function AdviseView({
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
               placeholder="Best time and place Saturday for redfish?"
-              className="h-11 w-full rounded-lg border border-border bg-bg px-3 pr-11 text-base text-fg"
+              className="h-11 w-full rounded-lg border border-border bg-bg py-0 pr-3 pl-11 text-base text-fg"
             />
             <button
               type="button"
               aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
               aria-pressed={hearing}
               onClick={hearing ? stopVoice : startDictation}
-              className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
+              className="absolute top-1/2 left-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
             >
               <Mic className="size-5" aria-hidden="true" />
             </button>
@@ -447,14 +447,14 @@ export function AdviseView({
                   value={plan}
                   onChange={(e) => setPlan(e.target.value)}
                   placeholder="Best time and place Saturday for redfish?"
-                  className="h-11 w-full rounded-lg border border-border bg-bg px-3 pr-11 text-base text-fg"
+                  className="h-11 w-full rounded-lg border border-border bg-bg py-0 pr-3 pl-11 text-base text-fg"
                 />
                 <button
                   type="button"
                   aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
                   aria-pressed={hearing}
                   onClick={hearing ? stopVoice : startDictation}
-                  className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
+                  className="absolute top-1/2 left-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
                 >
                   <Mic className="size-5" aria-hidden="true" />
                 </button>
