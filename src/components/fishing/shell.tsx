@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { BookOpen, CalendarDays, CloudSun, Compass, Fish, Lightbulb, Map, MapPinned, Menu, TrendingUp, Trophy, Waves, X } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { BookOpen, CalendarDays, Camera, CloudSun, Compass, Fish, Lightbulb, Map, MapPinned, Menu, TrendingUp, Trophy, Waves, X } from "lucide-react";
 import { AdviseView } from "@/components/fishing/advise-view";
 import { CatchMap } from "@/components/fishing/catch-map";
 import { FishTrends } from "@/components/fishing/fish-trends";
@@ -44,9 +44,19 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [mapReturn, setMapReturn] = useState<View | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [phoneLayout, setPhoneLayout] = useState(true);
   const [namingNote, setNamingNote] = useState<string | null>(null);
   const naming = useRef(false);
   const tried = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (localStorage.getItem("lfa-home-layout") === "classic") setPhoneLayout(false);
+  }, []);
+
+  function setLayout(next: boolean) {
+    setPhoneLayout(next);
+    localStorage.setItem("lfa-home-layout", next ? "phone" : "classic");
+  }
 
   useEffect(() => {
     if (!log.ready || naming.current) return;
@@ -91,14 +101,25 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           </h1>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-accent uppercase">
-              Mt. Pleasant · Charleston
-            </p>
-            <p className="mt-1 max-w-xl text-sm text-muted">
-              Ranks a spot and a tide from your catch log and the forecast. Thin data stays
-              labeled as general.
-            </p>
+            {phoneLayout ? null : (
+              <>
+                <p className="text-xs font-semibold tracking-widest text-accent uppercase">
+                  Mt. Pleasant · Charleston
+                </p>
+                <p className="mt-1 max-w-xl text-sm text-muted">
+                  Ranks a spot and a tide from your catch log and the forecast. Thin data stays
+                  labeled as general.
+                </p>
+              </>
+            )}
             {namingNote ? <p className="mt-1 text-sm text-accent">{namingNote}</p> : null}
+            <button
+              type="button"
+              onClick={() => setLayout(!phoneLayout)}
+              className="mt-1 text-xs text-accent underline"
+            >
+              {phoneLayout ? "Undo phone layout" : "Show phone layout"}
+            </button>
           </div>
           <nav className="relative flex items-center gap-1" aria-label="Sections">
             <NavButton item={NAV[0]} active={view === NAV[0].id} onClick={() => leave(NAV[0].id)} />
@@ -130,13 +151,14 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 pt-4 pb-10">
+      <main className={cn("mx-auto max-w-5xl px-4 pt-4", phoneLayout ? "pb-24" : "pb-10")}>
         {view === "advise" || view === "when" ? (
           <AdviseView
             initial={initial}
             rows={log.rows}
             sampleOnly={log.sampleOnly}
             screen={view === "when" ? "when" : "home"}
+            phoneLayout={phoneLayout}
             onShowPlan={() => setView("when")}
             onAdd={log.add}
             onOpenUpload={(file) => {
@@ -231,7 +253,51 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
         {view === "spots" ? <SpotGuide /> : null}
         {view === "season" ? <SeasonBoard rows={log.rows} /> : null}
       </main>
+      {phoneLayout ? (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+          aria-label="Phone shortcuts"
+        >
+          <div className="mx-auto grid max-w-5xl grid-cols-3 gap-1">
+            <PhoneTab label="Home" active={view === "advise"} onClick={() => leave("advise")}>
+              <Fish className="size-5" aria-hidden="true" />
+            </PhoneTab>
+            <PhoneTab label="Upload" active={view === "upload"} onClick={() => leave("upload")}>
+              <Camera className="size-5" aria-hidden="true" />
+            </PhoneTab>
+            <PhoneTab label="Forecast" active={view === "forecast"} onClick={() => leave("forecast")}>
+              <CloudSun className="size-5" aria-hidden="true" />
+            </PhoneTab>
+          </div>
+        </nav>
+      ) : null}
     </div>
+  );
+}
+
+function PhoneTab({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-14 flex-col items-center justify-center gap-0.5 rounded-lg text-xs font-semibold",
+        active ? "bg-surface text-accent" : "text-muted",
+      )}
+    >
+      {children}
+      {label}
+    </button>
   );
 }
 
