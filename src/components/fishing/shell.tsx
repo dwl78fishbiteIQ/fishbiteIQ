@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, CalendarDays, CloudSun, Compass, Fish, Lightbulb, Map, MapPinned, TrendingUp, Trophy, Waves } from "lucide-react";
+import { BookOpen, CalendarDays, CloudSun, Compass, Fish, Lightbulb, Map, MapPinned, Menu, TrendingUp, Trophy, Waves, X } from "lucide-react";
 import { AdviseView } from "@/components/fishing/advise-view";
 import { CatchMap } from "@/components/fishing/catch-map";
 import { FishTrends } from "@/components/fishing/fish-trends";
@@ -40,6 +40,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
   const log = useCatchLog();
   const marks = useWaypoints();
   const [view, setView] = useState<View>("advise");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [mapReturn, setMapReturn] = useState<View | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -78,6 +79,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
   function leave(next: View) {
     if (next !== "log") setMapReturn(null);
     setView(next);
+    setMenuOpen(false);
   }
 
   return (
@@ -97,15 +99,31 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             </p>
             {namingNote ? <p className="mt-1 text-sm text-accent">{namingNote}</p> : null}
           </div>
-          <nav className="flex gap-1 overflow-x-auto md:flex-wrap" aria-label="Sections">
-            {NAV.map((item) => (
-              <NavButton
-                key={item.id}
-                item={item}
-                active={view === item.id}
-                onClick={() => leave(item.id)}
-              />
-            ))}
+          <nav className="relative flex items-center gap-1" aria-label="Sections">
+            <NavButton item={NAV[0]} active={view === NAV[0].id} onClick={() => leave(NAV[0].id)} />
+            <button
+              type="button"
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              onClick={() => setMenuOpen((open) => !open)}
+              className="inline-flex size-11 items-center justify-center rounded-lg text-fg hover:bg-surface"
+            >
+              {menuOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+            </button>
+            {menuOpen ? (
+              <div className="absolute top-12 right-0 z-20 flex w-56 flex-col rounded-xl border border-border bg-surface p-1 shadow-lg">
+                {NAV.slice(1).map((item) => (
+                  <NavButton
+                    key={item.id}
+                    item={item}
+                    active={view === item.id}
+                    onClick={() => leave(item.id)}
+                    className="w-full justify-start"
+                    menu
+                  />
+                ))}
+              </div>
+            ) : null}
           </nav>
         </div>
       </header>
@@ -221,10 +239,14 @@ function NavButton({
   item,
   active,
   onClick,
+  className,
+  menu,
 }: {
   item: (typeof NAV)[number];
   active: boolean;
   onClick: () => void;
+  className?: string;
+  menu?: boolean;
 }) {
   const Icon = item.icon;
   return (
@@ -233,7 +255,14 @@ function NavButton({
       onClick={onClick}
       className={cn(
         "inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap",
-        active ? "bg-surface text-accent" : "text-muted hover:bg-surface hover:text-fg",
+        active
+          ? menu
+            ? "bg-bg text-accent"
+            : "bg-surface text-accent"
+          : menu
+            ? "text-muted hover:bg-bg hover:text-fg"
+            : "text-muted hover:bg-surface hover:text-fg",
+        className,
       )}
     >
       <Icon className="size-4" aria-hidden="true" />
