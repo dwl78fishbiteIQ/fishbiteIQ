@@ -7,7 +7,7 @@ import type { CatchRow, Conditions } from "@/lib/fishing/types";
 import { cn } from "@/lib/cn";
 import flame from "@/assets/hot-flame.jpg";
 
-export function BiteCalendar({ rows, phoneLayout = false }: { rows: CatchRow[]; phoneLayout?: boolean }) {
+export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
   const today = todayInCharleston();
   const dates = Array.from({ length: 5 }, (_, index) => addDays(today, index));
   const [conditions, setConditions] = useState<Record<string, Conditions | null>>({});
@@ -49,12 +49,6 @@ export function BiteCalendar({ rows, phoneLayout = false }: { rows: CatchRow[]; 
   }, []);
 
   const opened = open && open in conditions ? scoreDay(open) : null;
-  const blurb =
-    source === "reports"
-      ? "Scored from Haddrell's Point, the other Charleston reports, the tide, and the forecast. The catch log is not used."
-      : source === "both"
-        ? "Scored from your catch log, Haddrell's Point, the other Charleston reports, the tide, and the forecast."
-        : "Scored from your catch log, the Charleston tide, and the forecast.";
 
   function scoreDay(date: string): BiteOutlook | null {
     if (!(date in conditions)) return null;
@@ -67,9 +61,15 @@ export function BiteCalendar({ rows, phoneLayout = false }: { rows: CatchRow[]; 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
       <h2 className="text-3xl text-fg">5-Day Hook Up Forecast</h2>
-      {phoneLayout ? null : <p className="mt-1 text-sm text-muted">{blurb}</p>}
+      <p className="mt-1 text-sm text-muted">
+        {source === "reports"
+          ? "Scored from Haddrell's Point, the other Charleston reports, the tide, and the forecast. The catch log is not used."
+          : source === "both"
+            ? "Scored from your catch log, Haddrell's Point, the other Charleston reports, the tide, and the forecast."
+            : "Scored from your catch log, the Charleston tide, and the forecast."}
+      </p>
       <label className="mt-3 block text-sm text-muted">
-        {phoneLayout ? "Score from" : "Select Data Source for Forecast:"}
+        Select Data Source for Forecast:
         <select
           className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm"
           value={source}
@@ -80,57 +80,6 @@ export function BiteCalendar({ rows, phoneLayout = false }: { rows: CatchRow[]; 
           <option value="reports">Public Fishing Reports</option>
         </select>
       </label>
-      {phoneLayout ? (
-        <div className="mt-3 space-y-2">
-          {dates.map((date) => {
-            const known = date in conditions;
-            const outlook = scoreDay(date);
-            const hot = outlook?.grade === "Hot";
-            const bits = dayBits(date);
-            return (
-              <div
-                key={date}
-                className={cn(
-                  "relative overflow-hidden rounded-lg border bg-bg",
-                  date === open ? "border-accent" : "border-border",
-                )}
-              >
-                {hot ? (
-                  <img
-                    src={flame}
-                    alt=""
-                    className="pointer-events-none absolute inset-y-0 right-0 h-full w-1/2 object-cover opacity-40 mix-blend-screen"
-                  />
-                ) : null}
-                <div className="relative flex items-center gap-3 px-3 py-2">
-                  <div className="w-14 shrink-0 text-center">
-                    <span className="block text-xs font-semibold tracking-widest text-muted uppercase">{bits.weekday}</span>
-                    <span className="block text-lg text-fg">
-                      {bits.day}
-                      {outlook?.grade === "Good" ? <span className="ml-1">👍</span> : null}
-                    </span>
-                  </div>
-                  <div className={cn("w-28 shrink-0 rounded-md px-2 py-1 text-center", bannerClass(outlook?.grade))}>
-                    {outlook ? outlook.grade : "…"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-fg">{outlook?.window ?? (known ? "—" : "")}</p>
-                    {outlook ? (
-                      <button
-                        type="button"
-                        onClick={() => setOpen((current) => (current === date ? null : date))}
-                        className="mt-1 text-sm text-accent underline"
-                      >
-                        Reason
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
       <div className="mt-3 grid grid-cols-5 gap-1">
         {dates.map((date) => {
           const known = date in conditions;
@@ -176,9 +125,7 @@ export function BiteCalendar({ rows, phoneLayout = false }: { rows: CatchRow[]; 
           );
         })}
       </div>
-      )}
       {opened ? <p className="mt-3 text-sm text-fg">{opened.summary}</p> : null}
-      {phoneLayout && opened ? <p className="mt-2 text-sm text-muted">{blurb}</p> : null}
       {source !== "log" && reports ? (
         <p className="mt-2 text-sm text-muted">
           Reports:{" "}

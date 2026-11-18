@@ -26,7 +26,6 @@ type PlaceRead = {
 
 export function PhotoDesk({
   launch = false,
-  phoneLayout = false,
   initialFile = null,
   onOpenUpload,
   onAdd,
@@ -35,7 +34,6 @@ export function PhotoDesk({
   onLogged,
 }: {
   launch?: boolean;
-  phoneLayout?: boolean;
   initialFile?: File | null;
   onOpenUpload?: (file: File) => void;
   onAdd: (row: CatchRow) => void;
@@ -224,7 +222,7 @@ export function PhotoDesk({
   if (launch) {
     return (
       <section id="photo-desk" className="space-y-3">
-        <LogHeading settings={settings} onToggle={() => setSettings((open) => !open)} hideSettings={phoneLayout} />
+        <LogHeading settings={settings} onToggle={() => setSettings((open) => !open)} />
         {settings ? <PhoneSettings /> : null}
         <button
           type="button"
@@ -234,11 +232,6 @@ export function PhotoDesk({
         >
           Upload Your Fish Photo!
         </button>
-        {phoneLayout ? (
-          <button type="button" onClick={() => setSettings((open) => !open)} className="text-sm text-accent underline">
-            {settings ? "Hide picture settings" : "Check My Phone Picture Settings"}
-          </button>
-        ) : null}
         <input
           ref={fileInput}
           type="file"
@@ -396,17 +389,15 @@ function LogHeading({
   title = "Log My Fish",
   settings,
   onToggle,
-  hideSettings = false,
 }: {
   title?: string;
   settings: boolean;
   onToggle: () => void;
-  hideSettings?: boolean;
 }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
       <h2 className="text-3xl text-fg">{title}</h2>
-      {title === "Log My Fish" && !hideSettings ? (
+      {title === "Log My Fish" ? (
         <button type="button" onClick={onToggle} className="text-sm text-accent underline">
           {settings ? "Hide picture settings" : "Check My Phone Picture Settings"}
         </button>

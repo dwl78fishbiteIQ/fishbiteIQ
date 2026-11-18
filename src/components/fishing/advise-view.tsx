@@ -21,7 +21,6 @@ export function AdviseView({
   rows,
   sampleOnly,
   screen,
-  phoneLayout = false,
   onShowPlan,
   onAdd,
   onOpenUpload,
@@ -33,7 +32,6 @@ export function AdviseView({
   rows: CatchRow[];
   sampleOnly: boolean;
   screen: "home" | "when";
-  phoneLayout?: boolean;
   onShowPlan: () => void;
   onAdd: (row: CatchRow) => void;
   onOpenUpload: (file: File) => void;
@@ -190,7 +188,6 @@ export function AdviseView({
         <>
           <PhotoDesk
             launch
-            phoneLayout={phoneLayout}
             onOpenUpload={onOpenUpload}
             onAdd={onAdd}
             onRecommend={(setting, fish) => {
@@ -209,7 +206,6 @@ export function AdviseView({
             }}
           />
 
-          {phoneLayout ? null : (
           <section className="space-y-3">
             <div>
               <h2 className="text-3xl text-fg">When & Where</h2>
@@ -220,9 +216,8 @@ export function AdviseView({
             </div>
             {planAsk}
           </section>
-          )}
 
-          <BiteCalendar rows={rows} phoneLayout={phoneLayout} />
+          <BiteCalendar rows={rows} />
 
           <CatchMap rows={rows} compact onOpenTrip={onOpenMapTrip} />
 
