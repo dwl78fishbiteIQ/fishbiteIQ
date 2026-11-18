@@ -89,6 +89,7 @@ export function LogBook({
   const [clearedGuide, setClearedGuide] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [establishOpen, setEstablishOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
 
   const shown = useMemo(() => filterRows(rows, filter, waypoints), [rows, filter, waypoints]);
@@ -284,16 +285,27 @@ export function LogBook({
             setImportNote(null);
           }}
         />
-      ) : manageOpen ? (
-        <ManageData
+      ) : establishOpen ? (
+        <EstablishPage
           scanning={scanning}
           note={importNote}
+          onFiles={(list) => void searchRoll(list)}
+          onBack={() => {
+            setEstablishOpen(false);
+            setImportNote(null);
+          }}
+        />
+      ) : manageOpen ? (
+        <ManageData
           onClear={() => setConfirmClear(true)}
           onBackup={() => {
             setImportNote(null);
             setBackupOpen(true);
           }}
-          onFiles={(list) => void searchRoll(list)}
+          onEstablish={() => {
+            setImportNote(null);
+            setEstablishOpen(true);
+          }}
           onBack={() => {
             setManageOpen(false);
             setImportNote(null);
@@ -476,27 +488,27 @@ export function LogBook({
 }
 
 function ManageData({
-  scanning,
-  note,
   onClear,
   onBackup,
-  onFiles,
+  onEstablish,
   onBack,
 }: {
-  scanning: boolean;
-  note: string | null;
   onClear: () => void;
   onBackup: () => void;
-  onFiles: (list: FileList) => void;
+  onEstablish: () => void;
   onBack: () => void;
 }) {
-  const rollInput = useRef<HTMLInputElement>(null);
   return (
     <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
       <h2 className="text-3xl text-fg">Manage My Catch Log Data</h2>
-      <p className="text-sm text-muted">
-        Clear the book, save a copy, or search photos already on this phone.
-      </p>
+      <button
+        type="button"
+        onClick={onEstablish}
+        className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
+      >
+        Establish My Initial Catch Log From Previous Photos
+      </button>
+      <p className="text-sm text-muted">Clear the book, or save and restore a copy.</p>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -512,39 +524,65 @@ function ManageData({
         >
           Backup/Restore My Log
         </button>
-        <button
-          type="button"
-          disabled={scanning}
-          onClick={() => rollInput.current?.click()}
-          className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
-        >
-          {scanning ? "Searching photos…" : "Search camera roll"}
-        </button>
-        <input
-          ref={rollInput}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(event) => {
-            const list = event.target.files;
-            event.target.value = "";
-            if (list?.length) onFiles(list);
-          }}
-        />
       </div>
-      <p className="text-sm text-muted">
-        Pick the photos to search. A phone will not open the whole camera roll by itself. A photo is added only
-        when it shows a fish and the file still has the time and the location. Shots of the same fish within 10
-        minutes count as one catch, and the clearest one is kept.
-      </p>
-      {note ? <p className="text-sm text-fg">{note}</p> : null}
       <button
         type="button"
         onClick={onBack}
         className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
       >
         Back to catch log
+      </button>
+    </section>
+  );
+}
+
+function EstablishPage({
+  scanning,
+  note,
+  onFiles,
+  onBack,
+}: {
+  scanning: boolean;
+  note: string | null;
+  onFiles: (list: FileList) => void;
+  onBack: () => void;
+}) {
+  const rollInput = useRef<HTMLInputElement>(null);
+  return (
+    <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
+      <h2 className="text-3xl text-fg">Establish My Initial Catch Log From Previous Photos</h2>
+      <p className="text-sm text-muted">
+        Pick the photos to search. A phone will not open the whole camera roll by itself. A photo is added only
+        when it shows a fish and the file still has the time and the location. Shots of the same fish within 10
+        minutes count as one catch, and the clearest one is kept.
+      </p>
+      <button
+        type="button"
+        disabled={scanning}
+        onClick={() => rollInput.current?.click()}
+        className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
+      >
+        {scanning ? "Searching photos…" : "Search camera roll"}
+      </button>
+      <input
+        ref={rollInput}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          const list = event.target.files;
+          event.target.value = "";
+          if (list?.length) onFiles(list);
+        }}
+      />
+      {note ? <p className="text-sm text-fg">{note}</p> : null}
+      <button
+        type="button"
+        onClick={onBack}
+        className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
+      >
+        Back
       </button>
     </section>
   );
