@@ -269,6 +269,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
         {view === "spots" ? <SpotGuide /> : null}
         {view === "season" ? <SeasonBoard rows={log.rows} /> : null}
       </main>
+      <footer className="px-4 py-6 text-center text-sm text-muted">© FishbiteIQ, LLC - 2026</footer>
     </div>
   );
 }
