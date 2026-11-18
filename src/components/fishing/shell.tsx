@@ -219,7 +219,6 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             rows={log.rows}
             highlight={highlight}
             sampleOnly={log.sampleOnly}
-            onAdd={log.add}
             onRestore={log.restoreSample}
             onClear={log.clear}
             onReplace={log.replace}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { logRowPreview } from "@/lib/fishing/advisor";
 import { exportBackup, installBackup, readBackup } from "@/lib/fishing/backup";
 import { moonOn } from "@/lib/fishing/moon";
@@ -10,16 +10,12 @@ import { hoursAfterTurn, noaaPhotoLink, stageFromStation, tidePhrase } from "@/l
 import { EMPTY_FILTER, filterRows, type LogFilter } from "@/lib/fishing/log-filter";
 import { loadPhoto, savePhoto } from "@/lib/fishing/photos";
 import { spotById } from "@/lib/fishing/spots";
-import { clockToMinutes, formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
-import type { CatchRow, PhotoRead, Species, TideEvent, TideStage, WindDir } from "@/lib/fishing/types";
-import { SPECIES, TIDE_STAGES, WIND_DIRS } from "@/lib/fishing/types";
+import { clockToMinutes, formatPrettyDate } from "@/lib/fishing/time";
+import type { CatchRow, PhotoRead, Species, TideEvent } from "@/lib/fishing/types";
+import { SPECIES } from "@/lib/fishing/types";
 import type { Waypoint } from "@/lib/fishing/waypoints";
 import { LogFilterBar } from "@/components/fishing/log-filters";
-import { BaitPicker } from "@/components/fishing/bait-picker";
 import { cn } from "@/lib/cn";
-
-const field =
-  "h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm";
 
 type RollHit = {
   index: number;
@@ -69,7 +65,6 @@ export function LogBook({
   rows,
   highlight,
   sampleOnly,
-  onAdd,
   onRestore,
   onClear,
   onReplace,
@@ -80,7 +75,6 @@ export function LogBook({
   rows: CatchRow[];
   highlight: string | null;
   sampleOnly: boolean;
-  onAdd: (row: CatchRow) => void;
   onRestore: () => void;
   onClear: () => void;
   onReplace: (rows: CatchRow[]) => void;
@@ -90,7 +84,6 @@ export function LogBook({
 }) {
   const [filter, setFilter] = useState<LogFilter>(EMPTY_FILTER);
   const [openSpecies, setOpenSpecies] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [importNote, setImportNote] = useState<string | null>(null);
@@ -299,13 +292,6 @@ export function LogBook({
           ) : null}
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg"
-          >
-            {open ? "Close" : "Add a trip"}
-          </button>
-          <button
-            type="button"
             onClick={onRestore}
             className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
           >
@@ -385,8 +371,6 @@ export function LogBook({
       />
 
       {importNote ? <p className="text-sm text-muted">{importNote}</p> : null}
-
-      {open ? <AddTrip onAdd={onAdd} onDone={() => setOpen(false)} /> : null}
 
       <div className="space-y-2">
         {groups.map((group) => {
@@ -660,143 +644,5 @@ function TripRecord({ row, onBack }: { row: CatchRow; onBack: () => void }) {
         ))}
       </dl>
     </div>
-  );
-}
-
-function AddTrip({ onAdd, onDone }: { onAdd: (row: CatchRow) => void; onDone: () => void }) {
-  const [date, setDate] = useState(todayInCharleston());
-  const [start, setStart] = useState("07:00");
-  const [end, setEnd] = useState("");
-  const [tide, setTide] = useState<TideStage>("outgoing");
-  const [tideHours, setTideHours] = useState<number | null>(null);
-  const [tideTurn, setTideTurn] = useState<"high" | "low" | "">("");
-  const [water, setWater] = useState("");
-  const [air, setAir] = useState("");
-  const [windDir, setWindDir] = useState<WindDir | "">("NE");
-  const [wind, setWind] = useState("");
-  const [bait, setBait] = useState("");
-  const [species, setSpecies] = useState<Species>("Red Drum");
-  const [count, setCount] = useState("0");
-  const [length, setLength] = useState("");
-  const [weight, setWeight] = useState("");
-  const [notes, setNotes] = useState("");
-
-  useEffect(() => {
-    if (!date || !start) return;
-    let dead = false;
-    void liveConditions(date)
-      .then((result) => {
-        if (dead || !result.ok) return;
-        const minutes = clockToMinutes(start);
-        if (minutes == null) return;
-        const turn = hoursAfterTurn(result.tides, minutes);
-        setTideHours(turn?.hours ?? null);
-        setTideTurn(turn?.turn ?? "");
-      })
-      .catch(() => undefined);
-    return () => {
-      dead = true;
-    };
-  }, [date, start]);
-
-  return (
-    <form
-      className="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onAdd({
-          id: `u-${Date.now()}`,
-          date,
-          startTime: start,
-          endTime: end,
-          spotId: "",
-          tideStage: tide,
-          tideHours,
-          tideTurn,
-          waterTempF: water ? Number(water) : null,
-          airTempF: air ? Number(air) : null,
-          windDir,
-          windMph: wind ? Number(wind) : null,
-          bait,
-          species,
-          count: Math.max(0, Number(count) || 0),
-          lengthIn: length ? Number(length) : null,
-          weightLb: weight ? Number(weight) : null,
-          photoFilename: "",
-          notes,
-          source: "you",
-        });
-        onDone();
-      }}
-    >
-      <Label text="Date">
-        <input required type="date" className={field} value={date} onChange={(e) => setDate(e.target.value)} />
-      </Label>
-      <Label text="Start">
-        <input required type="time" className={field} value={start} onChange={(e) => setStart(e.target.value)} />
-      </Label>
-      <Label text="End">
-        <input type="time" className={field} value={end} onChange={(e) => setEnd(e.target.value)} />
-      </Label>
-      <Label text="Tide">
-        <select className={field} value={tide} onChange={(e) => setTide(e.target.value as TideStage)}>
-          {TIDE_STAGES.map((stage) => (
-            <option key={stage}>{stage}</option>
-          ))}
-        </select>
-      </Label>
-      <Label text="Species">
-        <select className={field} value={species} onChange={(e) => setSpecies(e.target.value as Species)}>
-          {SPECIES.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-      </Label>
-      <Label text="Count">
-        <input className={field} inputMode="numeric" value={count} onChange={(e) => setCount(e.target.value)} />
-      </Label>
-      <Label text="Largest, in">
-        <input className={field} inputMode="decimal" value={length} onChange={(e) => setLength(e.target.value)} />
-      </Label>
-      <Label text="Weight, lb">
-        <input className={field} inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} />
-      </Label>
-      <Label text="Water °F">
-        <input className={field} inputMode="decimal" value={water} onChange={(e) => setWater(e.target.value)} />
-      </Label>
-      <Label text="Air °F">
-        <input className={field} inputMode="decimal" value={air} onChange={(e) => setAir(e.target.value)} />
-      </Label>
-      <Label text="Wind dir">
-        <select className={field} value={windDir} onChange={(e) => setWindDir(e.target.value as WindDir)}>
-          {WIND_DIRS.map((dir) => (
-            <option key={dir}>{dir}</option>
-          ))}
-        </select>
-      </Label>
-      <Label text="Wind mph">
-        <input className={field} inputMode="decimal" value={wind} onChange={(e) => setWind(e.target.value)} />
-      </Label>
-      <Label text="Bait or lure">
-        <BaitPicker value={bait} onChange={setBait} />
-      </Label>
-      <Label text="Notes">
-        <input className={field} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Label>
-      <div className="sm:col-span-2">
-        <button type="submit" className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg">
-          Save trip
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function Label({ text, children }: { text: string; children: ReactNode }) {
-  return (
-    <label className="block text-sm text-muted">
-      {text}
-      <div className="mt-1">{children}</div>
-    </label>
   );
 }
