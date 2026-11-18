@@ -18,6 +18,15 @@ type Turn = {
   pending: string | null;
 };
 
+function predictionText(prompt: string, advice: Advice): string {
+  const picks = advice.picks.map((pick) =>
+    [pick.place, pick.windowLabel, pick.waterway, pick.landing ? `Closest landing: ${pick.landing}` : "", pick.why]
+      .filter(Boolean)
+      .join("\n"),
+  );
+  return ["FishBiteIQ", prompt, advice.headline, advice.lede, advice.safety, ...picks].filter(Boolean).join("\n\n");
+}
+
 type SpeechRec = {
   continuous: boolean;
   interimResults: boolean;
@@ -58,6 +67,7 @@ export function AdviseView({
   onOpenUpload,
   onOpenTrip,
   onOpenMapTrip,
+  onHome,
   waypoints,
 }: {
   initial: ConditionsResult;
@@ -69,6 +79,7 @@ export function AdviseView({
   onOpenUpload: (file: File) => void;
   onOpenTrip: (id: string) => void;
   onOpenMapTrip: (id: string) => void;
+  onHome: () => void;
   waypoints: Waypoint[];
 }) {
   const today = todayInCharleston();
@@ -82,6 +93,8 @@ export function AdviseView({
   const hearingRef = useRef(false);
   const recRef = useRef<SpeechRec | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
   const [conditions, setConditions] = useState<Conditions | null>(initial.ok ? initial : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initial.ok ? null : initial.message);
@@ -171,6 +184,10 @@ export function AdviseView({
       },
       ...current,
     ]);
+    if (asked.kind === "predict" || asked.kind === "when") {
+      setResultOpen(true);
+      setShareNote(null);
+    }
     if (asked.kind === "photo") {
       document.getElementById("photo-desk")?.scrollIntoView({ block: "start" });
     }
@@ -366,18 +383,30 @@ export function AdviseView({
         ) : null}
         {screen === "home" && voiceNote ? <p className="mt-2 text-sm text-muted">{voiceNote}</p> : null}
       </form>
-      {turns.map((turn) => (
-        <AdviceCard
-          key={turn.id}
-          prompt={turn.prompt}
-          advice={turn.advice}
-          pending={turn.pending}
-          onAsk={(prompt) => void submit(prompt)}
-          onOpenTrip={onOpenTrip}
-        />
-      ))}
     </>
   );
+
+  async function sharePrediction(turn: Turn) {
+    if (!turn.advice) return;
+    const text = predictionText(turn.prompt, turn.advice);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "FishBiteIQ", text });
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      setShareNote("Copied. Paste it into a text or email.");
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setShareNote("That prediction could not be shared.");
+    }
+  }
+
+  function closePrediction() {
+    setResultOpen(false);
+    setShareNote(null);
+    onHome();
+  }
 
   return (
     <div className="space-y-4">
@@ -469,22 +498,77 @@ export function AdviseView({
             {voiceNote ? <p className="mt-2 text-sm text-muted">{voiceNote}</p> : null}
           </form>
 
-          {turns.map((turn) => (
-            <AdviceCard
-              key={turn.id}
-              prompt={turn.prompt}
-              advice={turn.advice}
-              pending={turn.pending}
-              onAsk={(prompt) => void submit(prompt)}
-              onOpenTrip={onOpenTrip}
-            />
-          ))}
-
           <p className="text-xs text-muted">
             Weather and seas from Open-Meteo. Not a substitute for the forecast or the regulations.
           </p>
         </>
       )}
+      {resultOpen && turns[0] ? (
+        <PredictionWindow
+          turn={turns[0]}
+          note={shareNote}
+          onAsk={(prompt) => void submit(prompt)}
+          onOpenTrip={onOpenTrip}
+          onShare={() => void sharePrediction(turns[0])}
+          onClose={closePrediction}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PredictionWindow({
+  turn,
+  note,
+  onAsk,
+  onOpenTrip,
+  onShare,
+  onClose,
+}: {
+  turn: Turn;
+  note: string | null;
+  onAsk: (prompt: string) => void;
+  onOpenTrip: (id: string) => void;
+  onShare: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-4 sm:items-center">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prediction-title"
+        className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-bg"
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <h2 id="prediction-title" className="text-2xl text-fg">
+            When & Where
+          </h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!turn.advice}
+              onClick={onShare}
+              className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-50"
+            >
+              Share
+            </button>
+            <button type="button" onClick={onClose} className="h-11 rounded-lg border border-border px-4 text-sm text-fg">
+              Close
+            </button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <AdviceCard
+            prompt={turn.prompt}
+            advice={turn.advice}
+            pending={turn.pending}
+            onAsk={onAsk}
+            onOpenTrip={onOpenTrip}
+          />
+          {note ? <p className="mt-3 text-sm text-muted">{note}</p> : null}
+        </div>
+      </section>
     </div>
   );
 }

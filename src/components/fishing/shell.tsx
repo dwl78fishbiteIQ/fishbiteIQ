@@ -176,6 +176,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             sampleOnly={log.sampleOnly}
             screen={view === "when" ? "when" : "home"}
             onShowPlan={() => setView("when")}
+            onHome={() => setView("advise")}
             onAdd={log.add}
             onOpenUpload={(file) => {
               setPhotoFile(file);
