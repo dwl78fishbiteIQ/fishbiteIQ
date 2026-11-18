@@ -132,12 +132,12 @@ export function LogBook({
     }
   }
 
-  async function searchRoll(list: FileList) {
+  async function searchRoll(list: FileList | File[]) {
     setScanning(true);
     setImportNote("Opening the photos you picked…");
     const tidesByDate = new Map<string, TideEvent[] | null>();
     try {
-      const files = await filesFromUpload(list);
+      const files = await filesFromUpload(Array.from(list));
       if (!files.length) {
         setImportNote("No photos were selected.");
         return;
@@ -544,7 +544,7 @@ function EstablishPage({
 }: {
   scanning: boolean;
   note: string | null;
-  onFiles: (list: FileList) => void;
+  onFiles: (list: FileList | File[]) => void;
   onBack: () => void;
 }) {
   const rollInput = useRef<HTMLInputElement>(null);
@@ -602,9 +602,9 @@ function EstablishPage({
         multiple
         className="hidden"
         onChange={(event) => {
-          const list = event.target.files;
+          const picked = Array.from(event.target.files ?? []);
           event.target.value = "";
-          if (list?.length) onFiles(list);
+          if (picked.length) onFiles(picked);
         }}
       />
       <input
@@ -614,9 +614,9 @@ function EstablishPage({
         multiple
         className="hidden"
         onChange={(event) => {
-          const list = event.target.files;
+          const picked = Array.from(event.target.files ?? []);
           event.target.value = "";
-          if (list?.length) onFiles(list);
+          if (picked.length) onFiles(picked);
         }}
       />
       {note ? <p className="text-sm text-fg">{note}</p> : null}
