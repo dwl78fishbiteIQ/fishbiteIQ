@@ -68,8 +68,8 @@ export function CatchMap({
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         { maxZoom: 19 },
       ).addTo(map);
-      addPlaceLabels(L, map);
       map.setView([32.78, -79.88], 11);
+      addPlaceLabels(L, map);
       map.on("click", (event) => clickRef.current(event.latlng.lat, event.latlng.lng));
       mapRef.current = map;
       groupRef.current = L.layerGroup().addTo(map);

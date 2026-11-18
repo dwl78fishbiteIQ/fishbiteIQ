@@ -191,8 +191,8 @@ function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string })
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         { maxZoom: 19 },
       ).addTo(map);
-      addPlaceLabels(L, map);
       map.setView([lat, lng], 13);
+      addPlaceLabels(L, map);
       L.circleMarker([lat, lng], {
         radius: 8,
         color: "#1a1208",

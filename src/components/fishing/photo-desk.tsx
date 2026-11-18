@@ -458,8 +458,8 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         { maxZoom: 19 },
       ).addTo(map);
-      addPlaceLabels(L, map);
       map.setView([lat, lng], 14.6);
+      addPlaceLabels(L, map);
       L.circleMarker([lat, lng], { radius: 8, color: "#1c3d36", weight: 2, fillOpacity: 0.9 }).addTo(map);
       mapRef.current = map;
       requestAnimationFrame(() => map.invalidateSize());
