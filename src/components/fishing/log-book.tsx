@@ -11,7 +11,7 @@ import { EMPTY_FILTER, filterRows, type LogFilter } from "@/lib/fishing/log-filt
 import { clearPhotos, loadPhoto, savePhoto } from "@/lib/fishing/photos";
 import { spotById } from "@/lib/fishing/spots";
 import { clockToMinutes, formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
-import type { CatchRow, Species, TideEvent, TideStage, WindDir } from "@/lib/fishing/types";
+import type { CatchRow, PhotoRead, Species, TideEvent, TideStage, WindDir } from "@/lib/fishing/types";
 import { SPECIES, TIDE_STAGES, WIND_DIRS } from "@/lib/fishing/types";
 import type { Waypoint } from "@/lib/fishing/waypoints";
 import { LogFilterBar } from "@/components/fishing/log-filters";
@@ -20,6 +20,50 @@ import { cn } from "@/lib/cn";
 
 const field =
   "h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm";
+
+type RollHit = {
+  index: number;
+  file: File;
+  preview: string;
+  at: number;
+  date: string;
+  time: string;
+  lat: number;
+  lng: number;
+  read: PhotoRead;
+};
+
+function takenMinutes(date: string, time: string): number | null {
+  const [year, month, day] = date.split("-").map(Number);
+  const clock = clockToMinutes(time);
+  if (!year || !month || !day || clock == null) return null;
+  return Math.floor(Date.UTC(year, month - 1, day) / 60000) + clock;
+}
+
+/** Higher means the species and the length are easier to trust. */
+function clarityScore(read: PhotoRead): number {
+  let score = read.species ? 50 : 0;
+  score += read.confidence === "high" ? 30 : read.confidence === "medium" ? 16 : 0;
+  const low = read.lengthLow;
+  const high = read.lengthHigh;
+  if (low != null || high != null) score += 20;
+  if (read.lengthBasis && !/no reference/i.test(read.lengthBasis)) score += 20;
+  if (low != null && high != null) score += Math.max(0, 12 - Math.abs(high - low));
+  return score;
+}
+
+function keepClearest(hits: RollHit[]): RollHit[] {
+  const sorted = [...hits].sort((a, b) => a.at - b.at);
+  const groups: RollHit[][] = [];
+  for (const hit of sorted) {
+    const group = groups[groups.length - 1];
+    if (group && hit.at - group[group.length - 1].at <= 10) group.push(hit);
+    else groups.push([hit]);
+  }
+  return groups.map((group) =>
+    group.reduce((best, hit) => (clarityScore(hit.read) > clarityScore(best.read) ? hit : best)),
+  );
+}
 
 export function LogBook({
   rows,
@@ -150,7 +194,7 @@ export function LogBook({
         setImportNote("No photos were selected.");
         return;
       }
-      const found: CatchRow[] = [];
+      const hits: RollHit[] = [];
       let skippedPlace = 0;
       let notFish = 0;
       let unreadable = 0;
@@ -158,7 +202,8 @@ export function LogBook({
         setImportNote(`Checking photo ${index + 1} of ${files.length} for a fish, a time, and a location…`);
         const meta = await readPhotoMeta(file);
         const stamp = meta.taken ? captureStamp(meta.taken) : null;
-        if (!stamp?.date || !stamp.time || meta.lat == null || meta.lng == null) {
+        const at = stamp ? takenMinutes(stamp.date, stamp.time) : null;
+        if (!stamp?.date || !stamp.time || at == null || meta.lat == null || meta.lng == null) {
           skippedPlace += 1;
           continue;
         }
@@ -182,19 +227,35 @@ export function LogBook({
           notFish += 1;
           continue;
         }
-        const minutes = clockToMinutes(stamp.time);
-        if (!tidesByDate.has(stamp.date)) {
-          const conditions = await liveConditions(stamp.date).catch(() => null);
-          tidesByDate.set(stamp.date, conditions && conditions.ok ? conditions.tides : null);
+        hits.push({
+          index,
+          file,
+          preview,
+          at,
+          date: stamp.date,
+          time: stamp.time,
+          lat: meta.lat,
+          lng: meta.lng,
+          read: result,
+        });
+      }
+      const keptHits = keepClearest(hits);
+      const duplicates = hits.length - keptHits.length;
+      const found: CatchRow[] = [];
+      for (const hit of keptHits) {
+        const minutes = clockToMinutes(hit.time);
+        if (!tidesByDate.has(hit.date)) {
+          const conditions = await liveConditions(hit.date).catch(() => null);
+          tidesByDate.set(hit.date, conditions && conditions.ok ? conditions.tides : null);
         }
-        const tides = tidesByDate.get(stamp.date) ?? null;
+        const tides = tidesByDate.get(hit.date) ?? null;
         const stage = tides && minutes != null ? stageFromStation(tides, minutes) : null;
         const turn = tides && minutes != null ? hoursAfterTurn(tides, minutes) : null;
-        const length = result.lengthHigh ?? result.lengthLow;
+        const length = hit.read.lengthHigh ?? hit.read.lengthLow;
         const row: CatchRow = {
-          id: `roll-${Date.now()}-${index}`,
-          date: stamp.date,
-          startTime: stamp.time,
+          id: `roll-${Date.now()}-${hit.index}`,
+          date: hit.date,
+          startTime: hit.time,
           endTime: "",
           spotId: "",
           tideStage: stage ?? "outgoing",
@@ -205,18 +266,18 @@ export function LogBook({
           windDir: "",
           windMph: null,
           bait: "",
-          species: (result.species ?? "") as Species | "",
+          species: hit.read.species ?? "",
           count: 1,
           lengthIn: length != null && length > 0 ? length : null,
           weightLb: null,
-          photoFilename: (file.name.split("/").pop() || "photo").replace(/\.[^.]+$/, ""),
-          notes: result.setting,
+          photoFilename: (hit.file.name.split("/").pop() || "photo").replace(/\.[^.]+$/, ""),
+          notes: hit.read.setting,
           source: "you",
-          lat: meta.lat,
-          lng: meta.lng,
+          lat: hit.lat,
+          lng: hit.lng,
         };
         try {
-          await savePhoto(row.id, preview);
+          await savePhoto(row.id, hit.preview);
         } catch {
           /* the trip can still be saved without the stored photo */
         }
@@ -229,6 +290,7 @@ export function LogBook({
       const skipped = [
         skippedPlace ? `${skippedPlace} had no time or location` : "",
         notFish ? `${notFish} did not show a fish` : "",
+        duplicates ? `${duplicates} taken within 10 minutes of a clearer shot` : "",
         unreadable ? `${unreadable} could not be read` : "",
       ].filter(Boolean);
       setImportNote(
@@ -357,7 +419,8 @@ export function LogBook({
         </button>
         <p className="text-sm text-muted">
           Pick the photos to search. A phone will not open the whole camera roll by itself. A photo is added only
-          when it shows a fish and the file still has the time and the location.
+          when it shows a fish and the file still has the time and the location. Shots of the same fish within 10
+          minutes count as one catch, and the clearest one is kept.
         </p>
         <input
           ref={rollInput}
