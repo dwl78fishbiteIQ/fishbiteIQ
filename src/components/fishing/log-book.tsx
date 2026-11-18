@@ -3,12 +3,12 @@ import { logRowPreview } from "@/lib/fishing/advisor";
 import { exportBackup, installBackup, readBackup } from "@/lib/fishing/backup";
 import { moonOn } from "@/lib/fishing/moon";
 import { meteoLines } from "@/lib/fishing/photo-weather";
-import { filesFromUpload, rowFromPhoto, shrinkPhoto, speciesFromPhoto } from "@/lib/fishing/import-log";
+import { filesFromUpload, shrinkPhoto } from "@/lib/fishing/import-log";
 import { liveConditions, liveReadPhoto } from "@/lib/fishing/live";
 import { captureStamp, readPhotoMeta } from "@/lib/fishing/photo-meta";
 import { hoursAfterTurn, noaaPhotoLink, stageFromStation, tidePhrase } from "@/lib/fishing/station";
 import { EMPTY_FILTER, filterRows, type LogFilter } from "@/lib/fishing/log-filter";
-import { clearPhotos, loadPhoto, savePhoto } from "@/lib/fishing/photos";
+import { loadPhoto, savePhoto } from "@/lib/fishing/photos";
 import { spotById } from "@/lib/fishing/spots";
 import { clockToMinutes, formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, PhotoRead, Species, TideEvent, TideStage, WindDir } from "@/lib/fishing/types";
@@ -96,10 +96,8 @@ export function LogBook({
   const [importNote, setImportNote] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedGuide, setClearedGuide] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [scanning, setScanning] = useState(false);
   const backupInput = useRef<HTMLInputElement>(null);
-  const zipInput = useRef<HTMLInputElement>(null);
   const rollInput = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(() => filterRows(rows, filter, waypoints), [rows, filter, waypoints]);
@@ -125,48 +123,6 @@ export function LogBook({
     if (!highlight) return;
     document.getElementById(`trip-${highlight}`)?.scrollIntoView({ block: "center" });
   }, [highlight, shown.length, openSpecies]);
-
-  async function importSample(list: FileList) {
-    setImportNote("Reading photos…");
-    try {
-      const files = await filesFromUpload(list);
-      if (!files.length) {
-        setImportNote("No photos found in that file.");
-        return;
-      }
-      const rows: CatchRow[] = [];
-      let missingGps = 0;
-      try {
-        await clearPhotos();
-      } catch {
-        /* the book can still update if photo storage is blocked */
-      }
-      for (const [index, file] of files.entries()) {
-        const row = await rowFromPhoto(file, index);
-        if (row.lat == null || row.lng == null) missingGps += 1;
-        setImportNote(`Naming the fish ${index + 1} of ${files.length}…`);
-        try {
-          const preview = await shrinkPhoto(file);
-          await savePhoto(row.id, preview);
-          const named = await speciesFromPhoto(preview);
-          if (named.species) {
-            row.species = named.species;
-            row.lengthIn = named.lengthIn;
-          }
-        } catch {
-          /* keep the row even if the preview fails */
-        }
-        rows.push(row);
-      }
-      onReplace(rows);
-      setImportNote(
-        `Loaded ${rows.length} photo${rows.length === 1 ? "" : "s"}.${missingGps ? ` ${missingGps} had no GPS.` : ""}`,
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      setImportNote(message || "That zip could not be read.");
-    }
-  }
 
   async function importBackup(file: File) {
     setImportNote("Reading the backup…");
@@ -364,13 +320,6 @@ export function LogBook({
           </button>
           <button
             type="button"
-            onClick={() => zipInput.current?.click()}
-            className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
-          >
-            Upload zip
-          </button>
-          <button
-            type="button"
             onClick={() => void exportBackup(rows, waypoints).catch(() => setImportNote("The backup could not be saved."))}
             className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
           >
@@ -392,17 +341,6 @@ export function LogBook({
               const file = e.target.files?.[0];
               e.target.value = "";
               if (file) void importBackup(file);
-            }}
-          />
-          <input
-            ref={zipInput}
-            type="file"
-            accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream"
-            className="hidden"
-            onChange={(e) => {
-              const list = e.target.files;
-              e.target.value = "";
-              if (list?.length) void importSample(list);
             }}
           />
         </div>
@@ -445,25 +383,6 @@ export function LogBook({
           setOpenSpecies(next.species || null);
         }}
       />
-
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          if (e.dataTransfer.files?.length) void importSample(e.dataTransfer.files);
-        }}
-        className={cn(
-          "rounded-xl border border-dashed px-4 py-6 text-center text-sm",
-          dragOver ? "border-accent text-fg" : "border-border text-muted",
-        )}
-      >
-        Drop a zip of photos here to replace the sample catch log. Or use Upload zip.
-      </div>
 
       {importNote ? <p className="text-sm text-muted">{importNote}</p> : null}
 
