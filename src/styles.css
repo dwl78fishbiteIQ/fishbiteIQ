@@ -85,25 +85,37 @@
 }
 
 .leaflet-container[data-label-zoom="far"] .water-label,
-.leaflet-container[data-label-zoom="far"] .landing-label span:last-child {
+.leaflet-container[data-label-zoom="far"] .landing-label span {
   display: none;
 }
 
-.leaflet-container[data-label-zoom="mid"] .water-label span,
-.leaflet-container[data-label-zoom="mid"] .landing-label span:last-child {
+.leaflet-container[data-label-zoom="mid"] .water-label span {
   font-size: 9px;
   opacity: 0.8;
 }
 
-.leaflet-container[data-label-zoom="near"] .water-label span,
-.leaflet-container[data-label-zoom="near"] .landing-label span:last-child {
+.leaflet-container[data-label-zoom="mid"] .landing-label span {
+  font-size: 8px;
+  opacity: 0.9;
+}
+
+.leaflet-container[data-label-zoom="near"] .water-label span {
   font-size: 11px;
   opacity: 1;
 }
 
-.leaflet-container[data-label-zoom="close"] .water-label span,
-.leaflet-container[data-label-zoom="close"] .landing-label span:last-child {
+.leaflet-container[data-label-zoom="near"] .landing-label span {
+  font-size: 9px;
+  opacity: 1;
+}
+
+.leaflet-container[data-label-zoom="close"] .water-label span {
   font-size: 14px;
+  opacity: 1;
+}
+
+.leaflet-container[data-label-zoom="close"] .landing-label span {
+  font-size: 11px;
   opacity: 1;
 }
 
@@ -114,25 +126,22 @@
   width: max-content !important;
 }
 
-.landing-dot {
-  width: 8px;
-  height: 8px;
+.landing-icon {
+  display: block;
   flex: none;
-  border: 1px solid #1a1208;
-  border-radius: 999px;
-  background: #e08a3c;
+  filter: drop-shadow(0 1px 1px #041018);
 }
 
-.landing-label span:last-child {
-  color: #fff7ee;
+.landing-label span {
+  color: #7ec8ff;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
   text-shadow:
-    0 0 4px #1a1208,
-    0 1px 2px #1a1208;
+    0 0 4px #041018,
+    0 1px 2px #041018;
 }
 
 .catch-map,
