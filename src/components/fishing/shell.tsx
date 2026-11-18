@@ -208,7 +208,6 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             rows={log.rows}
             highlight={highlight}
             sampleOnly={log.sampleOnly}
-            onRestore={log.restoreSample}
             onClear={log.clear}
             onReplace={log.replace}
             onReplaceWaypoints={marks.replace}

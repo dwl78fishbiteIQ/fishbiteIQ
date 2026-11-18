@@ -65,7 +65,6 @@ export function LogBook({
   rows,
   highlight,
   sampleOnly,
-  onRestore,
   onClear,
   onReplace,
   onReplaceWaypoints,
@@ -75,7 +74,6 @@ export function LogBook({
   rows: CatchRow[];
   highlight: string | null;
   sampleOnly: boolean;
-  onRestore: () => void;
   onClear: () => void;
   onReplace: (rows: CatchRow[]) => void;
   onReplaceWaypoints: (waypoints: Waypoint[]) => void;
@@ -302,13 +300,6 @@ export function LogBook({
               Back to map
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={onRestore}
-            className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
-          >
-            Restore sample
-          </button>
           <button
             type="button"
             onClick={() => setConfirmClear(true)}
