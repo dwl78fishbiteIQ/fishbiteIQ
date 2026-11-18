@@ -68,27 +68,18 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
             ? "Scored from your catch log, Haddrell's Point, the other Charleston reports, the tide, and the forecast."
             : "Scored from your catch log, the Charleston tide, and the forecast."}
       </p>
-      <fieldset className="mt-3 flex flex-wrap gap-2">
-        <legend className="sr-only">Score the forecast from the catch log, public fishing reports, or both</legend>
-        {(
-          [
-            ["log", "Catch log"],
-            ["both", "Catch log + Public Fishing Reports"],
-            ["reports", "Public Fishing Reports"],
-          ] as const
-        ).map(([value, label]) => (
-          <label
-            key={value}
-            className={cn(
-              "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm",
-              source === value ? "border-accent bg-bg font-semibold text-fg" : "border-border text-muted",
-            )}
-          >
-            <input type="radio" name="hookup-source" checked={source === value} onChange={() => setSource(value)} />
-            {label}
-          </label>
-        ))}
-      </fieldset>
+      <label className="mt-3 block text-sm text-muted">
+        Data
+        <select
+          className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm"
+          value={source}
+          onChange={(event) => setSource(event.target.value as HookSource)}
+        >
+          <option value="log">Catch log</option>
+          <option value="both">Catch log + Public Fishing Reports</option>
+          <option value="reports">Public Fishing Reports</option>
+        </select>
+      </label>
       <div className="mt-3 grid grid-cols-5 gap-1">
         {dates.map((date) => {
           const known = date in conditions;
