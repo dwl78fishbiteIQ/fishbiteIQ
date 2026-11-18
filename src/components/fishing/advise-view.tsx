@@ -208,6 +208,55 @@ export function AdviseView({
     }
   }
 
+  function startDictation() {
+    const Ctor = speechCtor();
+    if (!Ctor) {
+      setVoiceNote("This phone can't hear a question in the browser. Type it instead.");
+      return;
+    }
+    stopVoice();
+    const rec = new Ctor();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    recRef.current = rec;
+    hearingRef.current = true;
+    setHearing(true);
+    setVoiceNote("Listening…");
+    rec.onresult = (event) => {
+      let said = "";
+      let final = false;
+      for (let i = 0; i < event.results.length; i += 1) {
+        said += event.results[i][0]?.transcript ?? "";
+        if (event.results[i].isFinal) final = true;
+      }
+      const text = said.trim();
+      if (!text) return;
+      setPlan(text);
+      if (!final || text.length < 3) return;
+      setVoiceNote(`Heard: ${text}`);
+      stopVoice();
+      void submit(text, whenQuery(text, today));
+      setPlan("");
+    };
+    rec.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setVoiceNote("The microphone is blocked. Allow it, or type the question.");
+        stopVoice();
+      }
+    };
+    rec.onend = () => {
+      if (recRef.current !== rec) return;
+      stopVoice();
+    };
+    try {
+      rec.start();
+    } catch {
+      setVoiceNote("The microphone didn't start. Type the question instead.");
+      stopVoice();
+    }
+  }
+
   function startVoice() {
     const Ctor = speechCtor();
     if (!Ctor) {
@@ -272,13 +321,24 @@ export function AdviseView({
       <form className="rounded-xl border border-border bg-surface p-4" onSubmit={askPlan}>
         <label className="text-sm text-muted" htmlFor={screen === "home" ? "plan-home" : "plan"}>
           Ask for a time and a place
-          <input
-            id={screen === "home" ? "plan-home" : "plan"}
-            value={plan}
-            onChange={(e) => setPlan(e.target.value)}
-            placeholder="Best time and place Saturday for redfish?"
-            className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg"
-          />
+          <span className="relative mt-1 block">
+            <input
+              id={screen === "home" ? "plan-home" : "plan"}
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              placeholder="Best time and place Saturday for redfish?"
+              className="h-11 w-full rounded-lg border border-border bg-bg px-3 pr-11 text-base text-fg"
+            />
+            <button
+              type="button"
+              aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
+              aria-pressed={hearing}
+              onClick={hearing ? stopVoice : startDictation}
+              className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
+            >
+              <Mic className="size-5" aria-hidden="true" />
+            </button>
+          </span>
         </label>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -381,13 +441,24 @@ export function AdviseView({
           >
             <label className="text-sm text-muted" htmlFor="plan">
               Ask for a time and a place
-              <input
-                id="plan"
-                value={plan}
-                onChange={(e) => setPlan(e.target.value)}
-                placeholder="Best time and place Saturday for redfish?"
-                className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg"
-              />
+              <span className="relative mt-1 block">
+                <input
+                  id="plan"
+                  value={plan}
+                  onChange={(e) => setPlan(e.target.value)}
+                  placeholder="Best time and place Saturday for redfish?"
+                  className="h-11 w-full rounded-lg border border-border bg-bg px-3 pr-11 text-base text-fg"
+                />
+                <button
+                  type="button"
+                  aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
+                  aria-pressed={hearing}
+                  onClick={hearing ? stopVoice : startDictation}
+                  className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
+                >
+                  <Mic className="size-5" aria-hidden="true" />
+                </button>
+              </span>
             </label>
             <button
               type="submit"
@@ -395,6 +466,7 @@ export function AdviseView({
             >
               Find a time and place
             </button>
+            {voiceNote ? <p className="mt-2 text-sm text-muted">{voiceNote}</p> : null}
           </form>
 
           {turns.map((turn) => (
