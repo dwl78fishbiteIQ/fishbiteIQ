@@ -69,7 +69,7 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
             : "Scored from your catch log, the Charleston tide, and the forecast."}
       </p>
       <label className="mt-3 block text-sm text-muted">
-        Data
+        Select Data Source for Forecast:
         <select
           className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm"
           value={source}
