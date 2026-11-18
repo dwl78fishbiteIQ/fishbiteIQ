@@ -41,6 +41,17 @@ const LANDINGS: { name: string; waterway: string; lat: number; lng: number }[] =
   { name: "Buck Hall", waterway: "Intracoastal Waterway", lat: 33.03836, lng: -79.56089 },
 ];
 
+export function waterwayLabels(): { name: string; lat: number; lng: number }[] {
+  return WATERWAYS.map((water) => {
+    const point = water.points[Math.floor((water.points.length - 1) / 2)];
+    return { name: water.name, lat: point[0], lng: point[1] };
+  });
+}
+
+export function publicLandings(): { name: string; waterway: string; lat: number; lng: number }[] {
+  return LANDINGS;
+}
+
 export function describePlace(lat: number, lng: number): PlaceLabel {
   const waterway = nearestWaterway(lat, lng);
   const landing = nearestLanding(lat, lng);

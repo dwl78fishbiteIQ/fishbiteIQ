@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { AlertTriangle } from "lucide-react";
+import { addPlaceLabels } from "@/lib/fishing/map-labels";
 import { spotById } from "@/lib/fishing/spots";
 import type { Advice } from "@/lib/fishing/types";
 import { cn } from "@/lib/cn";
@@ -190,6 +191,7 @@ function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string })
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         { maxZoom: 19 },
       ).addTo(map);
+      addPlaceLabels(L, map);
       map.setView([lat, lng], 13);
       L.circleMarker([lat, lng], {
         radius: 8,

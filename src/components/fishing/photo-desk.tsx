@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { LoaderCircle } from "lucide-react";
 import { BaitPicker } from "@/components/fishing/bait-picker";
 import { suggestedFilename } from "@/lib/fishing/advisor";
+import { addPlaceLabels } from "@/lib/fishing/map-labels";
 import { liveConditions, livePhotoWeather, liveReadPhoto } from "@/lib/fishing/live";
 import { meteoLines, type ModelRead } from "@/lib/fishing/photo-weather";
 import { shrinkPhoto } from "@/lib/fishing/import-log";
@@ -457,6 +458,7 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         { maxZoom: 19 },
       ).addTo(map);
+      addPlaceLabels(L, map);
       map.setView([lat, lng], 14.6);
       L.circleMarker([lat, lng], { radius: 8, color: "#1c3d36", weight: 2, fillOpacity: 0.9 }).addTo(map);
       mapRef.current = map;

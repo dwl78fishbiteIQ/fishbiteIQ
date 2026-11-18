@@ -6,6 +6,7 @@ import { tidePhrase } from "@/lib/fishing/station";
 import { formatPrettyDate } from "@/lib/fishing/time";
 import type { CatchRow, Species } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
+import { addPlaceLabels } from "@/lib/fishing/map-labels";
 import { nearestWaypoint, type Waypoint } from "@/lib/fishing/waypoints";
 import { cn } from "@/lib/cn";
 
@@ -67,6 +68,7 @@ export function CatchMap({
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         { maxZoom: 19 },
       ).addTo(map);
+      addPlaceLabels(L, map);
       map.setView([32.78, -79.88], 11);
       map.on("click", (event) => clickRef.current(event.latlng.lat, event.latlng.lng));
       mapRef.current = map;
