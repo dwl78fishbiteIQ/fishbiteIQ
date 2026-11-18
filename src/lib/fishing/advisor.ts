@@ -1164,7 +1164,7 @@ function timeSpan(rows: CatchRow[]): string | null {
 }
 
 function baitFromLog(rows: CatchRow[], species: Species | null): string | null {
-  const noted = rows.filter((row) => row.bait.trim());
+  const noted = rows.filter((row) => isLoggedBait(row.bait));
   if (!noted.length) return "No bait is written down in the catch log yet.";
   const all = rankBait(noted);
   const [name, stats] = all[0];
@@ -1183,10 +1183,16 @@ function baitFromLog(rows: CatchRow[], species: Species | null): string | null {
   return line;
 }
 
+function isLoggedBait(bait: string): boolean {
+  const name = bait.trim();
+  return Boolean(name) && !/^n\/a$/i.test(name);
+}
+
 function rankBait(rows: CatchRow[]): [string, { fish: number; trips: number }][] {
   const totals = new Map<string, { fish: number; trips: number }>();
   for (const row of rows) {
     const name = row.bait.trim();
+    if (!isLoggedBait(name)) continue;
     const current = totals.get(name) ?? { fish: 0, trips: 0 };
     current.fish += row.count;
     current.trips += 1;
@@ -1523,7 +1529,7 @@ function citeRows(rows: CatchRow[]): Citation[] {
 function topBaits(rows: CatchRow[]): string | null {
   const counts = new Map<string, number>();
   for (const row of rows) {
-    if (!row.bait || row.count <= 0) continue;
+    if (!isLoggedBait(row.bait) || row.count <= 0) continue;
     counts.set(row.bait, (counts.get(row.bait) ?? 0) + row.count);
   }
   const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2);

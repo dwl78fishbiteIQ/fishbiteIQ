@@ -213,7 +213,7 @@ export function LogBook({
           airTempF: null,
           windDir: "",
           windMph: null,
-          bait: "",
+          bait: "N/A",
           species: hit.read.species ?? "",
           count: 1,
           lengthIn: length != null && length > 0 ? length : null,
