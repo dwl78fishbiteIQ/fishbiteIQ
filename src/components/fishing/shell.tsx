@@ -134,11 +134,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           )}
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="max-w-xl text-sm text-muted">
-              Ranks a spot and a tide from your catch log and the forecast. Thin data stays
-              labeled as general.
-            </p>
-            {namingNote ? <p className="mt-1 text-sm text-accent">{namingNote}</p> : null}
+            {namingNote ? <p className="text-sm text-accent">{namingNote}</p> : null}
           </div>
           <nav className="relative flex items-center gap-1" aria-label="Sections">
             <NavButton item={NAV[0]} active={view === NAV[0].id} onClick={() => leave(NAV[0].id)} />
