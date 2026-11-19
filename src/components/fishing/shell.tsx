@@ -163,7 +163,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           />
           <nav
             aria-label="Sections"
-            className="fixed top-0 left-0 z-[1501] flex h-dvh w-64 flex-col gap-1 overflow-y-auto border-r border-border bg-surface p-3 shadow-lg"
+            className="fixed top-0 left-0 z-[1501] flex h-dvh w-64 flex-col gap-1 overflow-x-hidden overflow-y-auto border-r border-border bg-surface p-3 shadow-lg"
             onMouseLeave={() => {
               if (window.matchMedia("(pointer: coarse)").matches) return;
               setMenuOpen(false);
@@ -385,7 +385,8 @@ function NavButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap",
+        "inline-flex shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium",
+        menu ? "h-auto min-h-11 w-full items-start py-2 text-left whitespace-normal" : "h-11 whitespace-nowrap",
         active
           ? menu
             ? "bg-bg text-accent"
@@ -396,8 +397,8 @@ function NavButton({
         className,
       )}
     >
-      <Icon className="size-4" aria-hidden="true" />
-      <AmpText text={item.label} />
+      <Icon className={cn("size-4 shrink-0", menu && "mt-0.5")} aria-hidden="true" />
+      <AmpText text={item.label} className={menu ? "min-w-0 flex-1 leading-snug" : undefined} />
     </button>
   );
 }
