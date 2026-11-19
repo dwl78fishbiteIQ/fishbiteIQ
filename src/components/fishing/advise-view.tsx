@@ -290,7 +290,7 @@ export function AdviseView({
     const text = heardRef.current.trim();
     stopVoice();
     if (text.length < 3) {
-      setVoiceNote("Nothing to search yet. Say the question, then tap Stop listening.");
+      setVoiceNote("Nothing to search yet. Say the question, then tap the microphone again.");
       return;
     }
     setVoiceNote(null);
@@ -312,7 +312,7 @@ export function AdviseView({
     recRef.current = rec;
     hearingRef.current = true;
     setHearing(true);
-    setVoiceNote("Listening… tap Stop listening to search.");
+    setVoiceNote("Listening… tap the microphone again to search.");
     let prefix = "";
     rec.onresult = (event) => {
       let said = "";
@@ -381,24 +381,6 @@ export function AdviseView({
             Continue
           </button>
         </span>
-        {screen === "home" ? (
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={hearing ? stopAndSearch : startVoice}
-              className="inline-flex h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm font-semibold text-fg"
-            >
-              {hearing ? (
-                "Stop listening"
-              ) : (
-                <>
-                  <Mic className="size-4" aria-hidden="true" />
-                  "Hey FishbiteIQ . . ."
-                </>
-              )}
-            </button>
-          </div>
-        ) : null}
         {screen === "home" && voiceNote ? <p className="mt-2 text-sm text-muted">{voiceNote}</p> : null}
       </form>
     </>
