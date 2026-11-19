@@ -251,10 +251,12 @@ export function PhotoDesk({
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
-          className="flex h-16 w-full items-center justify-center gap-3 rounded-xl bg-accent px-4 text-center font-sans text-2xl font-bold text-accent-fg shadow-[0_10px_28px_rgb(224_138_60/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgb(224_138_60/0.42)] active:translate-y-0 active:brightness-100 motion-reduce:transition-none motion-reduce:hover:transform-none"
+          className="flex h-16 w-full items-center justify-center gap-3 rounded-xl bg-accent px-4 text-center shadow-[0_10px_28px_rgb(224_138_60/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgb(224_138_60/0.42)] active:translate-y-0 active:brightness-100 motion-reduce:transition-none motion-reduce:hover:transform-none"
         >
-          <Camera className="size-7 shrink-0" strokeWidth={2.25} aria-hidden="true" />
-          Upload Your Fish Photo!
+          <Camera className="size-7 shrink-0 text-accent-fg" strokeWidth={2.25} aria-hidden="true" />
+          <span className="font-sans text-2xl font-black text-white [-webkit-text-stroke:2px_#000] [paint-order:stroke_fill]">
+            Upload Your Fish Photo!
+          </span>
         </button>
         <input
           ref={fileInput}
