@@ -5,8 +5,6 @@ export type LimitRule = {
   name: string;
   size: string;
   bag: string;
-  minIn: number | null;
-  maxIn: number | null;
   gigClosesInWinter: boolean;
   note: string;
 };
@@ -17,8 +15,6 @@ export const LIMITS: LimitRule[] = [
     name: "Redfish",
     size: "18–25 in total length",
     bag: "1 per person, 2 per boat",
-    minIn: 18,
-    maxIn: 25,
     gigClosesInWinter: true,
     note: "State waters only. You cannot keep a redfish from federal waters. Rod and reel or gig.",
   },
@@ -27,8 +23,6 @@ export const LIMITS: LimitRule[] = [
     name: "Trout",
     size: "14 in total length minimum",
     bag: "10 per person",
-    minIn: 14,
-    maxIn: null,
     gigClosesInWinter: true,
     note: "Spotted seatrout. Rod and reel or gig.",
   },
@@ -37,8 +31,6 @@ export const LIMITS: LimitRule[] = [
     name: "Flounder",
     size: "16 in total length minimum",
     bag: "5 per person, 10 per boat",
-    minIn: 16,
-    maxIn: null,
     gigClosesInWinter: false,
     note: "Southern, summer, and gulf flounder count as one limit. Hook and line or gig. The published table does not close the season.",
   },
@@ -47,8 +39,6 @@ export const LIMITS: LimitRule[] = [
     name: "Sheepshead",
     size: "14 in total length minimum",
     bag: "10 per person, 30 per boat",
-    minIn: 14,
-    maxIn: null,
     gigClosesInWinter: false,
     note: "No closed season in the published table.",
   },
@@ -57,8 +47,6 @@ export const LIMITS: LimitRule[] = [
     name: "Black drum",
     size: "14–27 in total length",
     bag: "5 per person",
-    minIn: 14,
-    maxIn: 27,
     gigClosesInWinter: false,
     note: "No closed season in the published table.",
   },
@@ -67,8 +55,6 @@ export const LIMITS: LimitRule[] = [
     name: "Whiting",
     size: "No size limit listed",
     bag: "No bag limit listed",
-    minIn: null,
-    maxIn: null,
     gigClosesInWinter: false,
     note: "Whiting is not in the 2026–2027 finfish size and bag table. Confirm before you keep one.",
   },
@@ -94,11 +80,4 @@ export function seasonLine(iso: string): string {
     return "Gigging redfish and trout is open. It closes December 1.";
   }
   return "Check the season before you gig.";
-}
-
-export function lengthVerdict(rule: LimitRule, inches: number): "short" | "over" | "legal" | "unlisted" {
-  if (rule.minIn == null && rule.maxIn == null) return "unlisted";
-  if (rule.minIn != null && inches < rule.minIn) return "short";
-  if (rule.maxIn != null && inches > rule.maxIn) return "over";
-  return "legal";
 }
