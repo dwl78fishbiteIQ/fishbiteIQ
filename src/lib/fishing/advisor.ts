@@ -1,4 +1,4 @@
-import { moonOn, type MoonBucket } from "@/lib/fishing/moon";
+import { moonOn } from "@/lib/fishing/moon";
 import { noteFor, notesForMonth } from "@/lib/fishing/seasons";
 import { mentionedSpot, spotById, SPOTS } from "@/lib/fishing/spots";
 import { rowNear } from "@/lib/fishing/log-filter";
@@ -44,8 +44,6 @@ const REMINDERS = [
   "Check current SCDNR size and bag limits before you keep anything. A length guessed from a photo is not a legal measurement.",
   "Check the marine forecast again before you leave the dock. If it turns rough, don't go.",
 ];
-
-const SIMILAR = 3;
 
 export type Query =
   | {
@@ -152,7 +150,7 @@ export function advise(
   if (query.kind === "season") return seasonReport(query.month, rows);
   if (query.kind === "log") return logReport(query, rows);
   if (query.kind === "when") return answerFromLog(query, rows, conditions, waypoints);
-  return predict(query, rows, conditions, today);
+  return predict(query, rows, conditions, today, waypoints);
 }
 
 function emptyAdvice(partial: Partial<Advice> & Pick<Advice, "mode" | "headline" | "lede">): Advice {
@@ -322,85 +320,88 @@ function predict(
   rows: CatchRow[],
   conditions: Conditions | null,
   today: string,
+  waypoints: Waypoint[],
 ): Advice {
   const month = monthOf(query.date);
   const species = query.species;
-  const moon = moonOn(query.date);
   const forecastWind: WindDir | null = conditions?.daylight.windDir ?? null;
   const waterF = conditions?.waterF ?? null;
-  const setting = query.setting;
-
-  let spots = SPOTS.filter((s) => (query.area ? s.area === query.area : true));
-  if (query.spotId) {
-    const named = spots.find((s) => s.id === query.spotId) ?? spotById(query.spotId);
-    spots = named ? [named, ...spots.filter((s) => s.id !== named.id)] : spots;
-  }
 
   const wave = conditions?.daylight.waveFt ?? null;
-  const closedBySea = spots.filter((s) => s.exposed && wave != null && wave >= 4);
-  const openSpots = spots.filter((s) => !closedBySea.includes(s));
-
-  type Scored = {
-    spot: Spot;
-    pool: CatchRow[];
-    similarCount: number;
-    stage: TideStage;
-    avgCount: number;
-    rankScore: number;
-    windAgrees: boolean;
-  };
-
-  const scored: Scored[] = openSpots.map((spot) => {
-    const atSpot = rows.filter((r) => r.spotId === spot.id && (!species || r.species === species));
-    const ranked = atSpot.map((row) => ({
-      row,
-      score: similarity(row, month, forecastWind, waterF, moon.bucket),
-    }));
-    const similar = ranked.filter((x) => x.score >= SIMILAR).map((x) => x.row);
-    const pool = similar.length ? similar : atSpot;
+  const pattern = logPattern(rows, species);
+  const logged = rows.filter((row) => {
+    if (species && row.species !== species) return false;
+    if (query.area && !rowInArea(row, query.area)) return false;
+    return row.count > 0 || Boolean(row.species);
+  });
+  const scored = clusterRows(logged, waypoints).map((cluster) => {
+    const ranked = cluster.rows.map((row) => {
+      const weather = meteoFit(row, conditions, null);
+      const season = seasonPoints(row.date, query.date);
+      const total = weather + recencyPoints(row.date, query.date) + season + patternPoints(row, conditions, query.date, pattern);
+      return { row, weather, season, total };
+    });
+    const similar = ranked.filter((item) => item.weather >= 4 && item.season >= 1);
+    const seasonal = ranked.filter((item) => item.season >= 1);
+    const pool = (similar.length ? similar : seasonal).map((item) => item.row);
     const stage = pool.length ? bestStage(pool) : ("outgoing" as TideStage);
-    const avgCount = pool.length ? avg(pool.map((r) => r.count)) : 0;
-    const boost = setting ? structureBoost(spot, setting) : 0;
-    const windAgrees = windAgreement(similar.length ? similar : pool, forecastWind);
-    const rankScore =
-      (similar.length ? similar.length : atSpot.length ? 0.4 : 0) * 3 + avgCount + boost;
-    return { spot, pool, similarCount: similar.length, stage, avgCount, rankScore, windAgrees };
+    const avgCount = pool.length ? avg(pool.map((row) => row.count)) : 0;
+    const windAgrees = windAgreement(pool, forecastWind);
+    const rankScore = (similar.length ? similar : seasonal).reduce((sum, item) => sum + item.total, 0);
+    const guide = spotById(cluster.id);
+    const exposed = guide?.exposed ?? false;
+    return {
+      cluster,
+      guide,
+      exposed,
+      pool,
+      similarCount: similar.length,
+      seasonalOnly: similar.length === 0 && seasonal.length > 0,
+      stage,
+      avgCount,
+      rankScore,
+      windAgrees,
+    };
   });
 
-  scored.sort((a, b) => b.rankScore - a.rankScore);
-  const useful = scored.filter((s) => s.pool.length > 0);
-  const top = (useful.length ? useful : scored).slice(0, 3);
+  const open = scored.filter((item) => !(item.exposed && wave != null && wave >= 4));
+  const closedBySea = scored.filter((item) => item.exposed && wave != null && wave >= 4);
+  open.sort((a, b) => b.rankScore - a.rankScore || b.similarCount - a.similarCount);
+  const supported = open.filter((item) => item.pool.length > 0);
+  const top = supported.slice(0, 3);
 
   const dayStop = conditions ? dayIsUnsafe(conditions) : false;
   const forecastGap = !conditions || !conditions.weatherKnown;
   const daysOut = Math.abs(calendarDiff(today, query.date));
 
   const picks: SpotPick[] = top.map((item, index) => {
-    const window = describeWindow(item.spot, item.stage, item.pool, conditions);
+    const offset = item.guide?.offsetMin ?? 0;
+    const window = describeWindow(offset, item.stage, item.pool, conditions);
     const windowWx = conditions
       ? sliceWeather(conditions.hourly, window.start, window.end)
       : null;
-    const windowUnsafe = windowWx ? hourSliceUnsafe(windowWx, item.spot.exposed) : dayStop;
+    const windowUnsafe = windowWx ? hourSliceUnsafe(windowWx, item.exposed) : dayStop;
     const deferred = dayStop || windowUnsafe;
-    const reasons = reasonsFor(item, species, month, waterF, conditions, setting);
+    const place = describePlace(item.cluster.lat, item.cluster.lng);
+    const reasons = reasonsFor(item, species, waterF, conditions);
     const citations: Citation[] = [
-      ...(item.similarCount > 0 ? citeRows(bestTrips(item.pool, 3)) : []),
-      {
-        id: "",
-        doc: "Spot guide",
-        label: `${item.spot.name}: ${item.spot.structure}. Guide says: ${item.spot.bestTides}.`,
-      },
+      ...citeRows(bestTrips(item.pool, 3)),
+      ...(item.similarCount < 2 && species
+        ? [{ id: "", doc: "Seasonal notes" as const, label: noteFor(species, month) }]
+        : []),
     ];
-    if (item.similarCount < 2 && species) {
-      citations.push({
-        id: "",
-        doc: "Seasonal notes",
-        label: noteFor(species, month),
-      });
-    }
+    const bait = topBaits(item.pool);
     return {
       rank: index + 1,
-      spotId: item.spot.id,
+      spotId: item.cluster.id,
+      place: item.cluster.name,
+      lat: item.cluster.lat,
+      lng: item.cluster.lng,
+      waterway: place.waterway,
+      landing: `${place.landing} · ${place.directions}`,
+      landingLat: place.landingLat,
+      landingLng: place.landingLng,
+      why: whyThisSpot(item.pool, item.stage, bait, item.similarCount >= 1 ? 5 : 2, conditions),
       windowLabel: deferred ? `Pattern: ${window.pattern}` : window.label,
       tideStage: item.stage,
       reasons,
@@ -421,7 +422,7 @@ function predict(
   const fishLabel = species ? commonName(species) : "whatever the catch log supports";
   const seaNote =
     closedBySea.length > 0
-      ? `${closedBySea.map((s) => s.name).join(" and ")} ${closedBySea.length === 1 ? "is" : "are"} off the list — seas about ${wave?.toFixed(1)} ft.`
+      ? `${closedBySea.map((item) => item.cluster.name).join(" and ")} ${closedBySea.length === 1 ? "is" : "are"} off the list — seas about ${wave?.toFixed(1)} ft.`
       : null;
 
   const safetyBits: string[] = [];
@@ -448,7 +449,7 @@ function predict(
 
   const thin = similarN < 2;
   const ledeParts: string[] = [];
-  if (query.spotId && best && best.spot.id !== query.spotId) {
+  if (query.spotId && best && best.cluster.id !== query.spotId) {
     const named = spotById(query.spotId);
     ledeParts.push(
       `${named?.name ?? "That spot"} is not the strongest match in the catch log. The better-supported place is listed first.`,
@@ -457,8 +458,8 @@ function predict(
   if (!best) {
     ledeParts.push(
       closedBySea.length
-        ? "Every spot that fits this ask is exposed, and the seas are too big to send you there."
-        : "Nothing in the catch log matches that filter.",
+        ? "Every logged place that fits this ask is exposed, and the seas are too big to send you there."
+        : `Nothing in the catch log matches ${fishLabel} for this season and forecast. A general ${MONTHS[month - 1]} note is not a place to go.`,
     );
   } else if (dayStop) {
     ledeParts.push(
@@ -467,8 +468,10 @@ function predict(
   } else if (best && species) {
     ledeParts.push(
       thin
-        ? `The catch log is thin on ${fishLabel} for this kind of day. I'm leaning on the spot guide and seasonal notes, and I'll say so.`
-        : `${spotById(best.spot.id)?.name ?? "The top spot"} is the best match in the catch log for ${fishLabel} on ${formatPrettyDate(query.date)}.`,
+        ? `The catch log has no ${fishLabel} trip from this season in weather like ${formatPrettyDate(query.date)}. I'm not filling that in with a general tip.`
+        : `${best.cluster.name} is the best match in the catch log for ${fishLabel} on ${formatPrettyDate(query.date)}${
+            best.seasonalOnly ? ", from the same season, though the weather was not this close" : ""
+          }.`,
     );
   } else {
     ledeParts.push("No species was named, so this is a general read of the catch log for that date.");
@@ -485,7 +488,7 @@ function predict(
         ? `${conditions.daylight.windDir} ${conditions.daylight.windLow ?? "–"}–${Math.round(conditions.daylight.windHigh)} mph`
         : "wind not in yet";
     ledeParts.push(
-      `Upcoming tide: ${clock || "not in yet"}. ${conditions.daylight.weatherLabel}, ${wind}, water ${conditions.waterF}°F. Your log is matched on tide, wind, water, and moon.`,
+      `Upcoming tide: ${clock || "not in yet"}. ${conditions.daylight.weatherLabel}, ${wind}, water ${conditions.waterF}°F. The log is scored on season, how recent the trip is, tide, wind, water, air, pressure, clouds, rain, waves, and moon.`,
     );
   }
   if (query.includeBait) {
@@ -496,8 +499,8 @@ function predict(
   const why = !best
     ? "No spots to score."
     : similarN === 0
-      ? "No catch-log trips looked like this day."
-      : `${similarN} similar trip${similarN === 1 ? "" : "s"} at the top spot. ${
+      ? "No catch-log trip from this season looked like this day's weather."
+      : `${similarN} similar trip${similarN === 1 ? "" : "s"} at the top place, weighted toward recent catches in this season. ${
           best.windAgrees ? "Wind is in the family of those trips." : "Wind does not match most of those trips, so I knocked the confidence down."
         }`;
 
@@ -634,7 +637,7 @@ function answerFromLog(
   const askedTurn = askedMinutes != null && conditions ? hoursAfterTurn(conditions.tides, askedMinutes) : null;
   const scored = pool.map((row) => {
     const weather = meteoFit(row, conditions, askedMinutes);
-    const context = recencyPoints(row.date, query.date) + patternPoints(row, conditions, query.date, pattern);
+    const context = recencyPoints(row.date, query.date) + seasonPoints(row.date, query.date) + patternPoints(row, conditions, query.date, pattern);
     return { row, weather, total: weather + context };
   });
   const fitById = new Map(scored.map((item) => [item.row.id, item]));
@@ -793,7 +796,7 @@ export function biteOutlook(rows: CatchRow[], conditions: Conditions | null, dat
   const pattern = logPattern(rows, null);
   const scored = producers.map((row) => {
     const weather = meteoFit(row, conditions, null);
-    const total = weather + recencyPoints(row.date, date) + patternPoints(row, conditions, date, pattern);
+    const total = weather + recencyPoints(row.date, date) + seasonPoints(row.date, date) + patternPoints(row, conditions, date, pattern);
     return { row, weather, total };
   });
   const strong = scored.filter((item) => item.weather >= 4).sort((a, b) => b.total - a.total);
@@ -806,10 +809,14 @@ export function biteOutlook(rows: CatchRow[], conditions: Conditions | null, dat
   const avgWeather = pool.length ? avg(pool.map((item) => item.weather)) : 0;
   const grade: BiteOutlook["grade"] =
     close >= 4 && avgWeather >= 5 ? "Hot" : close >= 2 ? "Good" : close >= 1 || avgWeather >= 3 ? "Fair" : "Slow";
+  const recent = pool.find((item) => recencyPoints(item.row.date, date) >= 2);
+  const season = seasonOf(monthOf(date));
   const tideBit = turn ? offsetPhrase(turn) : `the ${stage} tide`;
   const summary = close
-    ? `${close} logged trip${close === 1 ? "" : "s"} look like this weather, mostly ${tideBit}.`
-    : `Nothing in the catch log looks much like this weather. ${conditions.pressureTrend ? `Pressure is ${conditions.pressureTrend}.` : "Check the tide before you go."}`;
+    ? `${close} ${season} trip${close === 1 ? "" : "s"} in the catch log look like this wind, water, pressure, and tide, mostly ${tideBit}${
+        recent ? `, including ${formatPrettyDate(recent.row.date)}` : ""
+      }.`
+    : `No ${season} catch in the log looks like this wind, water, tide, and pressure.`;
   return {
     date,
     grade,
@@ -833,8 +840,12 @@ function whyThisSpot(
       ? "Those trips were in weather like this forecast."
       : "The forecast is only a loose match to those trips."
     : "No forecast was loaded, so this is from the catch log alone.";
+  const recent = rows.filter((row) => conditions && recencyPoints(row.date, conditions.date) >= 2).length;
+  const season = conditions ? seasonOf(monthOf(conditions.date)) : null;
+  const recentLine = recent ? ` ${recent} of them are from the last two months.` : "";
+  const seasonLine = season ? ` Counted from ${season} trips.` : "";
   const baitLine = bait ? ` ${bait} was the bait.` : "";
-  return `${trips} caught ${fish} here, mostly on the ${stage} tide. ${weather}${baitLine}`;
+  return `${trips} caught ${fish} here, mostly on the ${stage} tide.${recentLine}${seasonLine} ${weather}${baitLine}`;
 }
 
 function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: number | null): number {
@@ -873,7 +884,14 @@ function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: nu
 
   const rowWave = row.meteo?.waveFt ?? null;
   const forecastWave = hour?.waveFt ?? conditions.daylight.waveFt;
-  if (rowWave != null && forecastWave != null && Math.abs(rowWave - forecastWave) <= 1.5) score += 1;
+  if (row.meteo?.cloudPct != null && conditions.cloudPct != null && Math.abs(row.meteo.cloudPct - conditions.cloudPct) <= 25) {
+    score += 1;
+  }
+  const rowPrecip = row.meteo?.precipPct ?? null;
+  if (rowPrecip != null && conditions.daylight.precipPct != null && Math.abs(rowPrecip - conditions.daylight.precipPct) <= 20) {
+    score += 1;
+  }
+  if (moonOn(row.date).bucket === moonOn(conditions.date).bucket) score += 1;
   return score;
 }
 
@@ -894,9 +912,18 @@ function pointAt(conditions: Conditions, minutes: number): HourPoint | null {
 
 function recencyPoints(rowDate: string, target: string): number {
   const days = Math.abs(calendarDiff(rowDate, target));
+  if (days <= 21) return 3;
   if (days <= 60) return 2;
   if (days <= 150) return 1;
   return 0;
+}
+
+function seasonPoints(rowDate: string, target: string): number {
+  const dist = monthDist(monthOf(rowDate), monthOf(target));
+  if (dist === 0) return 3;
+  if (dist === 1) return 2;
+  if (seasonOf(monthOf(rowDate)) === seasonOf(monthOf(target))) return 1;
+  return -1;
 }
 
 type LogPattern = { trend: "" | "rising" | "falling" | "stable"; moon: string };
@@ -1205,30 +1232,6 @@ function rankBait(rows: CatchRow[]): [string, { fish: number; trips: number }][]
   return [...totals.entries()].sort((a, b) => b[1].fish - a[1].fish || b[1].trips - a[1].trips);
 }
 
-function similarity(
-  row: CatchRow,
-  month: number,
-  wind: WindDir | null,
-  waterF: number | null,
-  moon: MoonBucket,
-): number {
-  let score = 0;
-  const dist = monthDist(monthOf(row.date), month);
-  if (dist === 0) score += 3;
-  else if (dist === 1) score += 2;
-  else if (seasonOf(monthOf(row.date)) === seasonOf(month)) score += 1;
-  if (wind && windClose(row.windDir, wind)) score += 1;
-  if (
-    waterF != null &&
-    row.waterTempF != null &&
-    Math.abs(row.waterTempF - waterF) <= 4
-  ) {
-    score += 2;
-  }
-  if (moonOn(row.date).bucket === moon) score += 1;
-  return score;
-}
-
 function monthDist(a: number, b: number): number {
   const d = Math.abs(a - b);
   return Math.min(d, 12 - d);
@@ -1256,23 +1259,10 @@ function windAgreement(pool: CatchRow[], wind: WindDir | null): boolean {
   return close >= pool.length / 2;
 }
 
-function structureBoost(spot: Spot, setting: string): number {
-  const s = setting.toLowerCase();
-  let boost = 0;
-  const struct = spot.structure.toLowerCase();
-  if (/oyster|rake|shell/.test(s) && /oyster/.test(struct)) boost += 2;
-  if (/dock|pier|piling/.test(s) && /dock|piling/.test(struct)) boost += 2;
-  if (/jetty|rock|rip/.test(s) && /jetty|rock/.test(struct)) boost += 2;
-  if (/mud|flat|spartina|marsh/.test(s) && /flat|marsh|mud|oyster/.test(struct)) boost += 2;
-  if (/current|rip|moving/.test(s) && /current/.test(struct)) boost += 1;
-  if (/bird/.test(s) && /creek mouth|flat/.test(struct)) boost += 1;
-  return boost;
-}
-
 type WindowDesc = { start: number; end: number; label: string; pattern: string };
 
 function describeWindow(
-  spot: Spot,
+  offsetMin: number,
   stage: TideStage,
   pool: CatchRow[],
   conditions: Conditions | null,
@@ -1285,7 +1275,7 @@ function describeWindow(
         : stage === "high slack"
           ? "the hour around high tide"
           : "the hour around low tide";
-  const events = (conditions?.tides ?? []).map((e) => ({ ...e, at: e.at + spot.offsetMin }));
+  const events = (conditions?.tides ?? []).map((e) => ({ ...e, at: e.at + offsetMin }));
   const candidates = primeWindows(events, stage).filter((w) => w.start >= 4.5 * 60 && w.start <= 19 * 60);
   const usable = candidates.length ? candidates : primeWindows(events, stage);
   if (!usable.length || !conditions) {
@@ -1388,63 +1378,44 @@ function unsafeSentence(conditions: Conditions): string {
 
 function reasonsFor(
   item: {
-    spot: Spot;
+    cluster: { name: string };
     pool: CatchRow[];
     similarCount: number;
+    seasonalOnly: boolean;
     stage: TideStage;
     avgCount: number;
     windAgrees: boolean;
   },
   species: Species | null,
-  month: number,
   waterF: number | null,
   conditions: Conditions | null,
-  setting: string | null,
 ): string[] {
   const reasons: string[] = [];
-  const fish = species ?? "fish";
+  const fish = species ? commonName(species) : "fish";
   if (item.similarCount > 0) {
-    const producers = item.pool.filter((r) => r.count > 0);
+    const newest = [...item.pool].sort((a, b) => b.date.localeCompare(a.date))[0];
     reasons.push(
-      `${item.similarCount} similar ${fish} trip${item.similarCount === 1 ? "" : "s"} here, averaging ${item.avgCount.toFixed(1)} fish. Best tide in that set: ${item.stage}.`,
+      `${item.similarCount} ${fish} trip${item.similarCount === 1 ? "" : "s"} here match this season and the forecast, averaging ${item.avgCount.toFixed(1)} fish. Best tide in that set: ${item.stage}. Most recent is ${formatPrettyDate(newest.date)}.`,
     );
-    const baits = topBaits(producers);
-    if (baits) reasons.push(`Baits that actually caught fish: ${baits}.`);
-    const temps = producers.map((r) => r.waterTempF).filter((t): t is number => t != null);
-    if (temps.length) {
-      const lo = Math.min(...temps);
-      const hi = Math.max(...temps);
-      reasons.push(
-        conditions?.waterSource === "gauge" || waterF == null
-          ? `Those trips were ${lo}–${hi}°F.`
-          : `Those trips were ${lo}–${hi}°F. A typical figure for this month is ${waterF}°F.`,
-      );
-    }
-  } else if (item.pool.length) {
+    const baits = topBaits(item.pool.filter((row) => row.count > 0));
+    if (baits) reasons.push(`Bait on those trips: ${baits}.`);
+  } else if (item.seasonalOnly) {
     reasons.push(
-      `${item.pool.length} ${fish} trip${item.pool.length === 1 ? "" : "s"} at ${item.spot.name}, but they don't look like this day's month, wind, or water. I'm not treating them as a match.`,
+      `${item.pool.length} ${fish} trip${item.pool.length === 1 ? "" : "s"} at ${item.cluster.name} are from this season, but the wind, water, pressure, and tide were not this close.`,
     );
   } else {
-    reasons.push(
-      `No ${fish} trips at ${item.spot.name} in the catch log. The spot guide is the only support: ${item.spot.bestTides.toLowerCase()}.`,
-    );
+    reasons.push(`No ${fish} trips at ${item.cluster.name} support this day.`);
   }
   if (!item.windAgrees && conditions?.daylight.windDir) {
-    reasons.push(
-      `Most of these trips were not on a ${conditions.daylight.windDir} wind. That's a reason to trust this less.`,
-    );
+    reasons.push(`Most of these trips were not on a ${conditions.daylight.windDir} wind.`);
   }
-  const skunk = item.pool.find((r) => r.count === 0);
-  if (skunk) {
-    reasons.push(
-      `A similar trip on ${formatPrettyDate(skunk.date)} was a zero${skunk.notes ? ` — ${skunk.notes}` : "."}`,
-    );
+  if (conditions?.pressureTrend) {
+    const same = item.pool.filter((row) => row.meteo?.pressureTrend === conditions.pressureTrend).length;
+    if (same) reasons.push(`${same} of these trips had ${conditions.pressureTrend} pressure, same as the forecast.`);
   }
-  if (setting) {
-    reasons.push("The photo notes nudged spots with matching structure up the list.");
-  }
-  if (reasons.length < 2) {
-    reasons.push(`${MONTHS[month - 1]} note: ${noteFor(species ?? "Red Drum", month)}`);
+  if (waterF != null) {
+    const temps = item.pool.map((row) => row.waterTempF).filter((temp): temp is number => temp != null);
+    if (temps.length) reasons.push(`Logged water was ${Math.min(...temps)}–${Math.max(...temps)}°F. The forecast water is ${waterF}°F.`);
   }
   return reasons.slice(0, 4);
 }

@@ -66,7 +66,7 @@ export function publicOnlyOutlook(base: BiteOutlook, pulse: PublicPulse | null, 
       ...base,
       grade: "Fair",
       window: null,
-      summary: `${pulse.prior} No report from the last several days was fished in wind, water, and tide like this day.`,
+      summary: "No report from the last several days was fished in wind, water, and tide like this day. The monthly outlook does not score the day.",
     };
   }
   const start = Math.max(0, match.minutes - 90);
@@ -74,25 +74,24 @@ export function publicOnlyOutlook(base: BiteOutlook, pulse: PublicPulse | null, 
     ...base,
     grade: "Good",
     window: `${formatClock(start)}–${formatClock(start + 180)}`,
-    summary: `${pulse.prior} A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day. The catch log is not in this score.`,
+    summary: `A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day. The catch log is not in this score.`,
   };
 }
 
 export function applyReports(advice: Advice, pulse: PublicPulse | null, day: Conditions | null): Advice {
-  const match = pulse && day ? pulse.trips.find((trip) => sameWater(day, trip)) : undefined;
-  const line = !pulse
-    ? "Public fishing reports didn't load, so this projection is the catch log and the forecast only."
-    : !day
-      ? `${pulse.prior} No forecast loaded, so a recent report can't be matched to this day.`
-      : match
-        ? `${pulse.prior} A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day, so it supports the projection.`
-        : `${pulse.prior} No report from the last several days was fished in wind, water, and tide like this day, so the reports don't move the call.`;
+  if (!pulse || !day) {
+    return {
+      ...advice,
+      lede: `${advice.lede} ${pulse ? "No forecast loaded, so a recent local report can't be matched to this day." : "Local reports didn't load, so this is the catch log and the forecast only."}`.trim(),
+    };
+  }
+  const match = pulse.trips.find((trip) => sameWater(day, trip));
+  if (!match) return advice;
   return {
     ...advice,
-    lede: `${advice.lede} ${line}`.trim(),
-    confidenceWhy: match
-      ? `${advice.confidenceWhy} A report from the last several days matches this wind, water, and tide.`
-      : advice.confidenceWhy,
+    lede: `${advice.lede} A local report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day, so it backs the call. The monthly outlook stays in the background.`.trim(),
+    confidence: advice.confidence === "low" ? "medium" : advice.confidence,
+    confidenceWhy: `${advice.confidenceWhy} A report from the last several days matches this wind, water, and tide.`.trim(),
   };
 }
 
@@ -103,12 +102,12 @@ export function withPublicReports(outlook: BiteOutlook, pulse: PublicPulse | nul
     const held = match
       ? `A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day. The catch log already has it at Hot.`
       : "No report from the last several days was fished in wind, water, and tide like this day.";
-    return { ...outlook, summary: `${outlook.summary} ${pulse.prior} ${held}` };
+    return { ...outlook, summary: `${outlook.summary} ${held}` };
   }
   return {
     ...outlook,
     grade: step(outlook.grade, 1),
-    summary: `${outlook.summary} ${pulse.prior} A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day, so it moves one step.`,
+    summary: `${outlook.summary} A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day, so it moves one step.`,
   };
 }
 
