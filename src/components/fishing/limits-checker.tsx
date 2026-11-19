@@ -1,14 +1,56 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AmpText } from "@/components/fishing/amp-text";
+import { clearerPicture, pictureTitle } from "@/lib/fishing/fish-pictures";
 import { LIMITS, LIMITS_SOURCE, seasonLine } from "@/lib/fishing/limits";
 import { formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
 import { cn } from "@/lib/cn";
+
+const pictures = new Map<string, string | null>();
 
 export function LimitsChecker() {
   const today = todayInCharleston();
   const [speciesId, setSpeciesId] = useState("red-drum");
   const rule = LIMITS.find((item) => item.id === speciesId) ?? LIMITS[0];
   const status = rule.season(today);
+  const [photo, setPhoto] = useState<string | null>(pictures.get(rule.id) ?? null);
+  const [photoNote, setPhotoNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    const title = pictureTitle(rule.id, rule.name);
+    if (!title) {
+      setPhoto(null);
+      setPhotoNote("This entry covers more than one species, so there is not one picture.");
+      return;
+    }
+    const cached = pictures.get(rule.id);
+    if (cached !== undefined) {
+      setPhoto(cached);
+      setPhotoNote(cached ? null : "No clear picture is on file for this species.");
+      return;
+    }
+    let cancel = false;
+    setPhoto(null);
+    setPhotoNote(null);
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replaceAll(" ", "_"))}`;
+    fetch(url, { headers: { accept: "application/json" } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { type?: string; thumbnail?: { source?: string }; originalimage?: { source?: string } } | null) => {
+        if (cancel) return;
+        const thumb = data && data.type !== "disambiguation" ? data.thumbnail?.source : null;
+        const src = thumb ? clearerPicture(thumb) : data?.originalimage?.source ?? null;
+        pictures.set(rule.id, src);
+        setPhoto(src);
+        setPhotoNote(src ? null : "No clear picture is on file for this species.");
+      })
+      .catch(() => {
+        if (cancel) return;
+        setPhoto(null);
+        setPhotoNote("The picture did not load. Try this species again.");
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [rule.id, rule.name]);
 
   return (
     <div className="space-y-4">
@@ -44,6 +86,15 @@ export function LimitsChecker() {
       </label>
 
       <div className="rounded-xl border border-border bg-surface p-4 text-sm text-fg">
+        {photo ? (
+          <img
+            src={photo}
+            alt={rule.name}
+            className="mb-3 max-h-80 w-full rounded-lg bg-white object-contain"
+          />
+        ) : (
+          <p className="mb-3 text-sm text-muted">{photoNote ?? "Loading the picture…"}</p>
+        )}
         <p className="font-semibold">{rule.name}</p>
         <p>{rule.size}</p>
         <p>{rule.bag}</p>
