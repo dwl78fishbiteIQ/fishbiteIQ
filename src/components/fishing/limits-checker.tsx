@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { gigClosed, LIMITS, LIMITS_SOURCE, seasonLine } from "@/lib/fishing/limits";
+import { LIMITS, LIMITS_SOURCE, seasonLine } from "@/lib/fishing/limits";
 import { formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
 import { cn } from "@/lib/cn";
 
 export function LimitsChecker() {
   const today = todayInCharleston();
-  const [speciesId, setSpeciesId] = useState(LIMITS[0].id);
+  const [speciesId, setSpeciesId] = useState("red-drum");
   const rule = LIMITS.find((item) => item.id === speciesId) ?? LIMITS[0];
-  const gig = rule.gigClosesInWinter && gigClosed(today);
+  const status = rule.season(today);
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-3xl text-fg">Regulations & limits checker</h2>
         <p className="max-w-2xl text-sm text-muted">
-          South Carolina state waters, from the 2026–2027 guide updated August 11, 2026. The season
-          line follows today's date. This is not a substitute for SCDNR.
+          Every saltwater species in the 2026–2027 South Carolina guide, A to Z. Updated August 11,
+          2026. The season line follows today's date. This is not a substitute for SCDNR.
         </p>
       </div>
 
@@ -27,7 +27,7 @@ export function LimitsChecker() {
         Species
         <select
           id="limit-species"
-          value={speciesId}
+          value={rule.id}
           onChange={(event) => setSpeciesId(event.target.value)}
           className="mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg"
         >
@@ -43,29 +43,24 @@ export function LimitsChecker() {
         <p className="font-semibold">{rule.name}</p>
         <p>{rule.size}</p>
         <p>{rule.bag}</p>
+        <p className={cn("mt-1 font-semibold", status.closed ? "text-danger" : "text-go")}>{status.label}</p>
         <p className="mt-1 text-muted">{rule.note}</p>
-        {gig ? <p className="mt-1 text-danger">Gig closed for this season.</p> : null}
       </div>
 
-      <ul className="grid gap-3 md:grid-cols-2">
+      <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
         {LIMITS.map((item) => {
-          const closed = item.gigClosesInWinter && gigClosed(today);
+          const itemStatus = item.season(today);
           return (
             <li key={item.id}>
               <button
                 type="button"
                 onClick={() => setSpeciesId(item.id)}
-                className={cn(
-                  "h-full w-full rounded-xl border p-4 text-left",
-                  item.id === speciesId ? "border-accent bg-surface" : "border-border bg-surface",
-                )}
+                className={cn("flex w-full items-center justify-between gap-3 px-4 py-3 text-left", item.id === rule.id && "bg-bg")}
               >
-                <p className="text-lg text-fg">{item.name}</p>
-                <p className="text-sm text-fg">{item.size}</p>
-                <p className="text-sm text-muted">{item.bag}</p>
-                <p className={cn("mt-2 text-sm font-semibold", closed ? "text-danger" : "text-go")}>
-                  {closed ? "Gig closed now" : item.gigClosesInWinter ? "Open, including gig" : "Open"}
-                </p>
+                <span className="text-sm text-fg">{item.name}</span>
+                <span className={cn("shrink-0 text-xs font-semibold", itemStatus.closed ? "text-danger" : "text-go")}>
+                  {itemStatus.label}
+                </span>
               </button>
             </li>
           );
@@ -73,7 +68,8 @@ export function LimitsChecker() {
       </ul>
 
       <p className="text-sm text-muted">
-        You still need a saltwater fishing license if you are 16 or older.{" "}
+        You still need a saltwater fishing license if you are 16 or older. Federal seasons can close
+        when a quota is met.{" "}
         <a className="text-accent underline" href={LIMITS_SOURCE} target="_blank" rel="noreferrer">
           Official SC finfish limits
         </a>
