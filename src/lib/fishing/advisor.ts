@@ -488,7 +488,7 @@ function predict(
         ? `${conditions.daylight.windDir} ${conditions.daylight.windLow ?? "–"}–${Math.round(conditions.daylight.windHigh)} mph`
         : "wind not in yet";
     ledeParts.push(
-      `Upcoming tide: ${clock || "not in yet"}. ${conditions.daylight.weatherLabel}, ${wind}, water ${conditions.waterF}°F. The log is scored on season, how recent the trip is, tide, wind, water, air, pressure, clouds, rain, waves, and moon.`,
+      `Upcoming tide: ${clock || "not in yet"}. ${conditions.daylight.weatherLabel}, ${wind}, water ${conditions.waterF}°F. The log is scored on season, how recent the trip is, tide, current, wind, water, air, humidity, pressure, clouds, rain, the last 24 hours of rain, front timing, waves, moon, and length when a trip recorded them.`,
     );
   }
   if (query.includeBait) {
@@ -884,6 +884,8 @@ function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: nu
 
   const rowWave = row.meteo?.waveFt ?? null;
   const forecastWave = hour?.waveFt ?? conditions.daylight.waveFt;
+  if (rowWave != null && forecastWave != null && Math.abs(rowWave - forecastWave) <= 1.5) score += 1;
+
   if (row.meteo?.cloudPct != null && conditions.cloudPct != null && Math.abs(row.meteo.cloudPct - conditions.cloudPct) <= 25) {
     score += 1;
   }
@@ -891,8 +893,39 @@ function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: nu
   if (rowPrecip != null && conditions.daylight.precipPct != null && Math.abs(rowPrecip - conditions.daylight.precipPct) <= 20) {
     score += 1;
   }
+  const rowHumidity = row.meteo?.humidity ?? null;
+  if (rowHumidity != null && conditions.humidity != null && Math.abs(rowHumidity - conditions.humidity) <= 15) score += 1;
+
+  const rowRain = row.meteo?.precip24In ?? null;
+  if (rowRain != null && conditions.precip24In != null && closeAmount(rowRain, conditions.precip24In, 0.2)) score += 1;
+
+  const rowFront = row.meteo?.frontHours ?? null;
+  if (rowFront != null && conditions.frontHours != null && sameSide(rowFront, conditions.frontHours) && Math.abs(rowFront - conditions.frontHours) <= 12) {
+    score += 1;
+  }
+
+  const rowCurrent = row.meteo?.currentKt ?? null;
+  const minuteNow = minute ?? 12 * 60;
+  const stage = stageFromStation(conditions.tides, minuteNow);
+  if (rowCurrent != null && stage && currentAgrees(rowCurrent, stage)) score += 1;
+
+  if (row.lengthIn != null && row.lengthIn > 0) score += 1;
   if (moonOn(row.date).bucket === moonOn(conditions.date).bucket) score += 1;
   return score;
+}
+
+function closeAmount(logged: number, forecast: number, span: number): boolean {
+  return Math.abs(logged - forecast) <= span || (logged < 0.05 && forecast < 0.05);
+}
+
+function sameSide(logged: number, forecast: number): boolean {
+  if (logged === 0 || forecast === 0) return true;
+  return Math.sign(logged) === Math.sign(forecast);
+}
+
+function currentAgrees(knots: number, stage: TideStage): boolean {
+  const moving = stage === "incoming" || stage === "outgoing";
+  return knots >= 0.4 ? moving : !moving;
 }
 
 function dayAir(conditions: Conditions): number | null {
@@ -1417,7 +1450,24 @@ function reasonsFor(
     const temps = item.pool.map((row) => row.waterTempF).filter((temp): temp is number => temp != null);
     if (temps.length) reasons.push(`Logged water was ${Math.min(...temps)}–${Math.max(...temps)}°F. The forecast water is ${waterF}°F.`);
   }
-  return reasons.slice(0, 4);
+  const lengths = item.pool.map((row) => row.lengthIn).filter((length): length is number => length != null && length > 0);
+  if (lengths.length) {
+    reasons.push(`Length on those trips: ${Math.min(...lengths)}–${Math.max(...lengths)} in.`);
+  }
+  const extras = loggedExtras(item.pool);
+  if (extras) reasons.push(extras);
+  return reasons.slice(0, 5);
+}
+
+function loggedExtras(rows: CatchRow[]): string | null {
+  const bits: string[] = [];
+  if (rows.some((row) => row.meteo?.humidity != null)) bits.push("humidity");
+  if (rows.some((row) => row.meteo?.currentKt != null)) bits.push("tidal current");
+  if (rows.some((row) => row.meteo?.precip24In != null)) bits.push("rain in the last 24 hours");
+  if (rows.some((row) => row.meteo?.frontHours != null)) bits.push("hours before or after a front");
+  if (!bits.length) return null;
+  if (bits.length === 1) return `Those trips recorded ${bits[0]}, and it was part of the match.`;
+  return `Those trips recorded ${bits.slice(0, -1).join(", ")} and ${bits[bits.length - 1]}, and each was part of the match when it was saved.`;
 }
 
 function matchSpecies(text: string): Species | null {

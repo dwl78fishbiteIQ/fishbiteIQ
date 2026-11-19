@@ -149,6 +149,10 @@ export type Conditions = {
   cloudPct: number | null;
   humidity: number | null;
   gustMph: number | null;
+  /** Inches of rain in the 24 hours before noon. */
+  precip24In: number | null;
+  /** Hours from noon until the pressure drop. Negative means the front is still ahead. */
+  frontHours: number | null;
 };
 
 export type Citation = {

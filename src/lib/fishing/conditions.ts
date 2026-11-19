@@ -94,6 +94,8 @@ export async function loadConditions(date: string): Promise<Conditions> {
     cloudPct: sky.cloudPct,
     humidity: sky.humidity,
     gustMph: sky.gustMph,
+    precip24In: sky.precip24In,
+    frontHours: sky.frontHours,
   };
 }
 
@@ -113,12 +115,14 @@ function weatherUrl(date: string): string {
   const q = new URLSearchParams({
     latitude: "32.794",
     longitude: "-79.863",
-    hourly: "temperature_2m,relative_humidity_2m,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,weather_code",
+    hourly:
+      "temperature_2m,relative_humidity_2m,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,precipitation_probability,weather_code",
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
+    precipitation_unit: "inch",
     timezone: "America/New_York",
-    start_date: date,
-    end_date: date,
+    start_date: shiftIso(date, -2),
+    end_date: shiftIso(date, 1),
   });
   return `https://api.open-meteo.com/v1/forecast?${q.toString()}`;
 }
@@ -145,10 +149,14 @@ function compact(iso: string): string {
   return iso.replaceAll("-", "");
 }
 
+function shiftIso(iso: string, days: number): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
 function addCompact(iso: string, days: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + days));
-  return dt.toISOString().slice(0, 10).replaceAll("-", "");
+  return shiftIso(iso, days).replaceAll("-", "");
 }
 
 function atFromStamp(stamp: string, date: string): number | null {
@@ -205,6 +213,8 @@ function readSky(payload: unknown, date: string): {
   cloudPct: number | null;
   humidity: number | null;
   gustMph: number | null;
+  precip24In: number | null;
+  frontHours: number | null;
 } {
   const empty = {
     pressureHpa: null,
@@ -212,6 +222,8 @@ function readSky(payload: unknown, date: string): {
     cloudPct: null,
     humidity: null,
     gustMph: null,
+    precip24In: null,
+    frontHours: null,
   };
   if (!payload || typeof payload !== "object") return empty;
   const hourly = (payload as { hourly?: Record<string, unknown> }).hourly;
@@ -221,19 +233,22 @@ function readSky(payload: unknown, date: string): {
   const cloud = numList(hourly.cloud_cover);
   const humidity = numList(hourly.relative_humidity_2m);
   const gust = numList(hourly.wind_gusts_10m);
-  const day: { at: number; pressure: number | null; cloud: number | null; humidity: number | null; gust: number | null }[] =
+  const rain = numList(hourly.precipitation);
+  const series: { at: number; pressure: number | null; cloud: number | null; humidity: number | null; gust: number | null; rain: number | null }[] =
     [];
   times.forEach((stamp, i) => {
     const at = atFromStamp(stamp, date);
-    if (at == null || at < 6 * 60 || at >= 18 * 60) return;
-    day.push({
+    if (at == null) return;
+    series.push({
       at,
       pressure: finite(pressure[i]),
       cloud: finite(cloud[i]),
       humidity: finite(humidity[i]),
       gust: finite(gust[i]),
+      rain: finite(rain[i]),
     });
   });
+  const day = series.filter((hour) => hour.at >= 6 * 60 && hour.at < 18 * 60);
   if (!day.length) return empty;
   const mid = day[Math.floor(day.length / 2)];
   const first = day.find((hour) => hour.pressure != null);
@@ -253,7 +268,45 @@ function readSky(payload: unknown, date: string): {
     cloudPct: avg(day.map((hour) => hour.cloud)),
     humidity: avg(day.map((hour) => hour.humidity)),
     gustMph: avg(day.map((hour) => hour.gust)),
+    precip24In: rainBeforeNoon(series),
+    frontHours: frontFromNoon(series),
   };
+}
+
+function rainBeforeNoon(
+  series: { at: number; rain: number | null }[],
+): number | null {
+  const noon = 12 * 60;
+  let total = 0;
+  let any = false;
+  for (const hour of series) {
+    if (hour.at <= noon - 24 * 60 || hour.at > noon || hour.rain == null) continue;
+    total += hour.rain;
+    any = true;
+  }
+  return any ? total : null;
+}
+
+function frontFromNoon(series: { at: number; pressure: number | null }[]): number | null {
+  const noon = 12 * 60;
+  const byHour = new Map<number, number>();
+  for (const hour of series) {
+    if (hour.pressure == null) continue;
+    byHour.set(Math.round(hour.at / 60), hour.pressure);
+  }
+  let bestDrop = 0;
+  let bestAt = 0;
+  for (const [hour, pressure] of byHour) {
+    const before = byHour.get(hour - 6);
+    if (before == null) continue;
+    const drop = before - pressure;
+    if (drop > bestDrop) {
+      bestDrop = drop;
+      bestAt = hour;
+    }
+  }
+  if (bestDrop < 3) return null;
+  return bestAt - noon / 60;
 }
 
 function readWeather(payload: unknown, date: string): { ok: boolean; hours: Map<number, WxHour> } {
