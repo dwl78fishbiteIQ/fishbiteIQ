@@ -38,7 +38,7 @@ const NAV: { id: View; label: string; short: string; icon: typeof Fish }[] = [
   { id: "forecast", label: "Forecast", short: "Sky", icon: CloudSun },
   { id: "spots", label: "Spots", short: "Spots", icon: MapPinned },
   { id: "season", label: "Season", short: "Season", icon: CalendarDays },
-  { id: "limits", label: "Regulations & limits checker", short: "Limits", icon: Scale },
+  { id: "limits", label: "SCDNR Saltwater Regulation & Limits Checker", short: "Limits", icon: Scale },
   { id: "about", label: "About FishBiteIQ", short: "About", icon: Info },
 ];
 

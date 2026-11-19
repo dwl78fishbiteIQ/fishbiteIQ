@@ -15,7 +15,7 @@ export function LimitsChecker() {
       <div>
         <h2 className="flex items-center gap-3 text-3xl text-fg">
           <img src="/logos/scdnr-seal-color.png" alt="" className="h-[5.6rem] w-[5.6rem] shrink-0" />
-          <AmpText text="Regulations & limits checker" />
+          <AmpText text="SCDNR Saltwater Regulation & Limits Checker" />
         </h2>
         <p className="max-w-2xl text-sm text-muted">
           Every saltwater species in the 2026–2027 South Carolina guide, A to Z. Updated August 11,
