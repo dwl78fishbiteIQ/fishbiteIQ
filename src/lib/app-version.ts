@@ -1,4 +1,4 @@
-/** Newest entry is the version built into the app. Add a line when a version is published. */
+/** Newest entry is the version built into the app. Add a line here and in public/version.json when a version is published. */
 export const APP_RELEASES = [{ version: "1.0.0", published: "2026-11-18" }] as const;
 
 export const APP_VERSION = APP_RELEASES[APP_RELEASES.length - 1].version;
