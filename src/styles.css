@@ -129,11 +129,13 @@
 
 .flat-label .mark-dot,
 .structure-label .mark-dot {
-  width: 8px;
-  height: 8px;
+  display: block;
+  width: 12px;
+  height: 12px;
   flex: none;
-  border: 1px solid #1a1208;
+  border: 2px solid #fff;
   border-radius: 999px;
+  box-shadow: 0 0 0 1px #1a1208;
 }
 
 .flat-label .mark-dot {
