@@ -12,6 +12,7 @@ import { SeasonBoard } from "@/components/fishing/season-board";
 import { SpotGuide } from "@/components/fishing/spot-guide";
 import { WhyItWorks } from "@/components/fishing/why-it-works";
 import { cn } from "@/lib/cn";
+import { APP_VERSION } from "@/lib/app-version";
 import type { ConditionsResult } from "@/lib/fishing/types";
 import { speciesFromPhoto } from "@/lib/fishing/import-log";
 import { loadPhoto } from "@/lib/fishing/photos";
@@ -114,7 +115,8 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
-      <header className="border-b border-border">
+      <header className="relative border-b border-border">
+        <p className="absolute top-3 left-4 text-xs text-muted">Version {APP_VERSION}</p>
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4">
           <h1 className="flex justify-center">
             <img src="/logos/header-logo.png" alt="FishBiteIQ" className="h-[6.3rem] w-auto sm:h-[8.1rem]" />
