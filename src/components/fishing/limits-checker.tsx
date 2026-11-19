@@ -12,7 +12,10 @@ export function LimitsChecker() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-3xl text-fg">Regulations & limits checker</h2>
+        <h2 className="flex items-center gap-3 text-3xl text-fg">
+          <img src="/logos/scdnr-seal.png" alt="" className="h-14 w-14 shrink-0" />
+          Regulations & limits checker
+        </h2>
         <p className="max-w-2xl text-sm text-muted">
           Every saltwater species in the 2026–2027 South Carolina guide, A to Z. Updated August 11,
           2026. The season line follows today's date. This is not a substitute for SCDNR.
