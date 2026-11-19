@@ -219,7 +219,7 @@ export function CatchMap({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-3xl text-fg">Catch map</h2>
+          <h2 className="text-3xl text-fg">My Catch Map</h2>
           <p className="text-sm text-muted">
             {filtered.length} trips across {pins.length} {pins.length === 1 ? "place" : "places"}. Photo
             GPS is used when a trip has it. Everything else sits on the guide spot.
