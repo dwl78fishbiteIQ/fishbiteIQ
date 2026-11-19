@@ -238,19 +238,3 @@
     scroll-behavior: auto !important;
   }
 }
-
-.upload-catch {
-  color: #000;
-  -webkit-text-stroke: 1.75px #000;
-  paint-order: stroke fill;
-}
-
-.upload-catch::before {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  color: transparent;
-  -webkit-text-stroke: 4.75px #fff;
-  pointer-events: none;
-}
