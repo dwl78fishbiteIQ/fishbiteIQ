@@ -241,7 +241,7 @@ export function PhotoDesk({
 
   if (launch) {
     return (
-      <section id="photo-desk" className="space-y-3">
+      <section id="photo-desk" className="space-y-3 rounded-xl border-2 border-accent p-4">
         <div className="flex justify-end">
           <button type="button" onClick={() => setSettings((open) => !open)} className="text-sm text-accent underline">
             {settings ? "Hide picture settings" : "Check My Phone Picture Settings"}

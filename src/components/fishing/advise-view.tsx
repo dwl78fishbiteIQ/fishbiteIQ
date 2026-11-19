@@ -447,13 +447,15 @@ export function AdviseView({
           <BiteCalendar rows={rows} />
 
           {sampleOnly ? (
-            <p className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-muted">
+            <p className="rounded-xl border-2 border-accent bg-surface p-4 text-sm text-muted">
               A sample catch log is loaded so the advice has records to cite. Add your own trips in
               the catch log — they're saved on this device.
             </p>
           ) : null}
 
-          <CatchMap rows={rows} compact onOpenTrip={onOpenMapTrip} />
+          <div className="rounded-xl border-2 border-accent p-4">
+            <CatchMap rows={rows} compact onOpenTrip={onOpenMapTrip} />
+          </div>
         </>
       ) : (
         <>

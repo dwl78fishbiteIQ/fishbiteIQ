@@ -59,7 +59,7 @@ export function BiteCalendar({ rows }: { rows: CatchRow[] }) {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-4">
+    <section className="rounded-xl border-2 border-accent bg-surface p-4">
       <h2 className="text-3xl text-fg">5-Day Hook Up Forecast</h2>
       <p className="mt-1 text-sm text-muted">
         {source === "reports"
