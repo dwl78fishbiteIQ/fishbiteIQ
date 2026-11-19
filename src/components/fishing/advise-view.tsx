@@ -433,18 +433,10 @@ export function AdviseView({
           />
 
           <section className="space-y-3">
-            <div className="relative mx-auto w-fit">
-              <img src="/logos/fish-outline.png" alt="" className="h-28 w-auto" />
-              <h2 className="absolute top-1/2 left-[62%] flex w-[46%] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center font-display leading-none font-semibold">
-                <span className="text-sm text-white [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]">
-                  Guide me
-                </span>
-                <span className="text-lg">
-                  <span className="text-white [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]">FishBite</span>
-                  <span className="text-accent [-webkit-text-stroke:0.6px_#1a1208] [paint-order:stroke_fill]">IQ</span>
-                </span>
-              </h2>
-            </div>
+            <h2 className="text-center font-display text-3xl leading-none font-semibold">
+              <span className="text-white [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]">Guide me FishBite</span>
+              <span className="text-accent [-webkit-text-stroke:0.6px_#1a1208] [paint-order:stroke_fill]">IQ</span>
+            </h2>
             <p className="text-sm text-muted">
               Ask in your own words. The answer uses your catch log and the forecast for the day
               you name.
