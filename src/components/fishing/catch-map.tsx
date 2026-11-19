@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { catchPins, type CatchPin } from "@/lib/fishing/pins";
+import { spotById } from "@/lib/fishing/spots";
 import { tidePhrase } from "@/lib/fishing/station";
 import { formatPrettyDate } from "@/lib/fishing/time";
 import type { CatchRow, Species } from "@/lib/fishing/types";
@@ -40,6 +41,8 @@ export function CatchMap({
   const [ready, setReady] = useState(false);
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [name, setName] = useState("");
+  const [heat, setHeat] = useState(false);
+  const heatCanvas = useRef<HTMLCanvasElement | null>(null);
   const compactRef = useRef(compact);
   compactRef.current = compact;
   const clickRef = useRef<(lat: number, lng: number) => void>(() => {});
@@ -85,6 +88,8 @@ export function CatchMap({
       mapRef.current?.remove();
       mapRef.current = null;
       groupRef.current = null;
+      heatCanvas.current?.remove();
+      heatCanvas.current = null;
       setReady(false);
     };
   }, []);
@@ -104,6 +109,7 @@ export function CatchMap({
       const ink = root.getPropertyValue("--color-accent-fg").trim();
       const surface = root.getPropertyValue("--color-surface-2").trim();
       for (const pin of pins) {
+        if (heat) break;
         const active = pin.id === selected?.id;
         const empty = pin.fish === 0;
         const marker = L.circleMarker([pin.lat, pin.lng], {
@@ -163,7 +169,39 @@ export function CatchMap({
     return () => {
       dead = true;
     };
-  }, [pins, waypoints, selected?.id, ready, onOpenTrip]);
+  }, [pins, waypoints, selected?.id, ready, onOpenTrip, heat]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    if (!heat) {
+      heatCanvas.current?.remove();
+      heatCanvas.current = null;
+      return;
+    }
+    let dead = false;
+    const canvas = document.createElement("canvas");
+    canvas.className = "pointer-events-none";
+    canvas.style.position = "absolute";
+    map.getPanes().overlayPane.appendChild(canvas);
+    heatCanvas.current = canvas;
+    const points = heatPoints(filtered);
+    const draw = () => {
+      if (dead) return;
+      void import("leaflet").then((mod) => {
+        if (dead) return;
+        paintHeat(mod.default ?? mod, map, canvas, points);
+      });
+    };
+    map.on("move zoom resize viewreset", draw);
+    draw();
+    return () => {
+      dead = true;
+      map.off("move zoom resize viewreset", draw);
+      canvas.remove();
+      if (heatCanvas.current === canvas) heatCanvas.current = null;
+    };
+  }, [heat, filtered, ready]);
 
   return (
     <div className="space-y-4">
@@ -174,9 +212,22 @@ export function CatchMap({
             {filtered.length} trips across {pins.length} {pins.length === 1 ? "place" : "places"}. Photo
             GPS is used when a trip has it. Everything else sits on the guide spot.
             {compact ? "" : " Tap the map to name a waypoint."}
+            {heat ? " Brighter color means more fish logged there." : ""}
           </p>
         </div>
-        <select
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={heat}
+            onClick={() => setHeat((on) => !on)}
+            className={cn(
+              "h-11 rounded-lg border px-3 text-sm font-semibold",
+              heat ? "border-accent bg-accent text-accent-fg" : "border-border bg-surface text-fg",
+            )}
+          >
+            {heat ? "Heatmap on" : "Heatmap"}
+          </button>
+          <select
           className="h-11 rounded-lg border border-border bg-surface px-3 text-sm text-fg"
           value={species}
           onChange={(e) => {
@@ -190,6 +241,7 @@ export function CatchMap({
             <option key={item}>{item}</option>
           ))}
         </select>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border">
@@ -324,4 +376,54 @@ function escapeHtml(value: string): string {
     "'": "\u0026#39;",
   };
   return value.replace(/[&<>"']/g, (char) => named[char] ?? char);
+}
+
+function heatPoints(rows: CatchRow[]): Array<[number, number, number]> {
+  const points: Array<[number, number, number]> = [];
+  for (const row of rows) {
+    const weight = Math.max(1, row.count || 0);
+    if (row.lat != null && row.lng != null && Number.isFinite(row.lat) && Number.isFinite(row.lng)) {
+      points.push([row.lat, row.lng, weight]);
+      continue;
+    }
+    const spot = spotById(row.spotId);
+    if (spot) points.push([spot.lat, spot.lng, weight]);
+  }
+  return points;
+}
+
+function paintHeat(
+  L: typeof import("leaflet"),
+  map: LeafletMap,
+  canvas: HTMLCanvasElement,
+  points: Array<[number, number, number]>,
+) {
+  const size = map.getSize();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(size.x * ratio));
+  canvas.height = Math.max(1, Math.round(size.y * ratio));
+  canvas.style.width = `${size.x}px`;
+  canvas.style.height = `${size.y}px`;
+  L.DomUtil.setPosition(canvas, map.containerPointToLayerPoint([0, 0]));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, size.x, size.y);
+  if (!points.length) return;
+  const max = Math.max(...points.map((point) => point[2]));
+  ctx.globalCompositeOperation = "lighter";
+  for (const [lat, lng, weight] of points) {
+    const point = map.latLngToContainerPoint([lat, lng]);
+    const radius = 40;
+    const strength = 0.4 + 0.6 * (weight / max);
+    const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, radius);
+    gradient.addColorStop(0, `rgba(255, 244, 214, ${0.85 * strength})`);
+    gradient.addColorStop(0.35, `rgba(225, 6, 0, ${0.7 * strength})`);
+    gradient.addColorStop(0.72, `rgba(224, 138, 60, ${0.28 * strength})`);
+    gradient.addColorStop(1, "rgba(224, 138, 60, 0)");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
