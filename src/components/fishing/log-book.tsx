@@ -7,7 +7,7 @@ import { filesFromUpload, shrinkPhoto } from "@/lib/fishing/import-log";
 import { liveConditions, liveReadPhoto } from "@/lib/fishing/live";
 import { captureStamp, readPhotoMeta } from "@/lib/fishing/photo-meta";
 import { hoursAfterTurn, noaaPhotoLink, stageFromStation, tidePhrase } from "@/lib/fishing/station";
-import { EMPTY_FILTER, filterRows, type LogFilter } from "@/lib/fishing/log-filter";
+import { EMPTY_FILTER, filterRows, placeLabel, type LogFilter } from "@/lib/fishing/log-filter";
 import { loadPhoto, savePhoto } from "@/lib/fishing/photos";
 import { spotById } from "@/lib/fishing/spots";
 import { clockToMinutes, formatPrettyDate } from "@/lib/fishing/time";
@@ -432,6 +432,7 @@ export function LogBook({
                 <ul className="space-y-2 border-t border-border p-2">
                   {group.rows.map((row) => {
           const spot = spotById(row.spotId);
+          const named = placeLabel(row, waypoints);
           const moon = moonOn(row.date);
           return (
             <li
@@ -463,7 +464,7 @@ export function LogBook({
                 </p>
               </div>
               <p className="text-sm text-muted">
-                {[spot ? `${spot.name} · ${spot.area}` : row.spotId || null, tidePhrase(row)]
+                {[named !== "No place" ? named : spot ? `${spot.name} · ${spot.area}` : row.spotId || null, tidePhrase(row)]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
@@ -516,6 +517,7 @@ export function LogBook({
               {openId === row.id ? (
                 <TripRecord
                   row={row}
+                  waypoints={waypoints}
                   onBack={() => {
                     setOpenId(null);
                     onBack?.();
@@ -863,9 +865,10 @@ function ClearedGuide({ onDone }: { onDone: () => void }) {
   );
 }
 
-function TripRecord({ row, onBack }: { row: CatchRow; onBack: () => void }) {
+function TripRecord({ row, waypoints, onBack }: { row: CatchRow; waypoints: Waypoint[]; onBack: () => void }) {
   const [photo, setPhoto] = useState<string | null | undefined>(undefined);
   const spot = spotById(row.spotId);
+  const named = placeLabel(row, waypoints);
 
   useEffect(() => {
     let dead = false;
@@ -890,7 +893,7 @@ function TripRecord({ row, onBack }: { row: CatchRow; onBack: () => void }) {
     ["Weight", row.weightLb == null ? "—" : `${row.weightLb} lb`],
     ["Bait", row.bait || "—"],
     ["Tide", tidePhrase(row)],
-    ["Spot", spot ? `${spot.name}, ${spot.area}` : row.spotId || "—"],
+    ["Spot", named !== "No place" ? named : spot ? `${spot.name}, ${spot.area}` : row.spotId || "—"],
     ["Water", row.waterTempF == null ? "—" : `${row.waterTempF}°F`],
     ["Air", row.airTempF == null ? "—" : `${row.airTempF}°F`],
     ["Wind", row.windDir ? `${row.windDir} ${row.windMph ?? ""} mph`.trim() : "—"],

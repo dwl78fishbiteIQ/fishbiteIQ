@@ -23,6 +23,7 @@ export const EMPTY_FILTER: LogFilter = {
 };
 
 export function placeLabel(row: CatchRow, waypoints: Waypoint[]): string {
+  if (row.spotName?.trim()) return row.spotName.trim();
   if (row.lat != null && row.lng != null) {
     const mark = nearestWaypoint(row.lat, row.lng, waypoints, 0.4);
     if (mark) return mark.name;

@@ -203,6 +203,8 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
               key={photoFile ? `${photoFile.name}-${photoFile.lastModified}` : "new"}
               initialFile={photoFile}
               onAdd={log.add}
+              waypoints={marks.waypoints}
+              onSaveSpot={marks.save}
               onRecommend={() => undefined}
               onCancel={() => {
                 setPhotoFile(null);

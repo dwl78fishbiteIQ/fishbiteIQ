@@ -14,6 +14,7 @@ import { hoursAfterTurn, stageFromStation, tidePhrase } from "@/lib/fishing/stat
 import { clockToMinutes, todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, MeteoSnap, PhotoRead, Species, TideStage, WindDir } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
+import { nearestWaypoint, type Waypoint } from "@/lib/fishing/waypoints";
 
 const field = "h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm";
 
@@ -32,6 +33,8 @@ export function PhotoDesk({
   onRecommend,
   onCancel,
   onLogged,
+  waypoints = [],
+  onSaveSpot,
 }: {
   launch?: boolean;
   initialFile?: File | null;
@@ -40,6 +43,8 @@ export function PhotoDesk({
   onRecommend?: (setting: string, fish: Species | null) => void;
   onCancel?: () => void;
   onLogged?: () => void;
+  waypoints?: Waypoint[];
+  onSaveSpot?: (name: string, lat: number, lng: number) => void;
 }) {
   const today = todayInCharleston();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -71,6 +76,8 @@ export function PhotoDesk({
   const [notes, setNotes] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+  const [spotName, setSpotName] = useState("");
+  const spotEdited = useRef(false);
   const [place, setPlace] = useState<PlaceRead | null>(null);
   const [, setModels] = useState<ModelRead[]>([]);
   const [snap, setSnap] = useState<MeteoSnap | null>(null);
@@ -187,8 +194,19 @@ export function PhotoDesk({
     });
   }
 
+  useEffect(() => {
+    if (spotEdited.current || lat == null || lng == null) return;
+    const near = nearestWaypoint(lat, lng, waypoints, 0.4);
+    if (near) setSpotName(near.name);
+  }, [lat, lng, waypoints]);
+
   function save() {
     const length = Number(lengthHigh || lengthLow);
+    const namedSpot = spotName.trim();
+    if (namedSpot && lat != null && lng != null) {
+      const near = nearestWaypoint(lat, lng, waypoints, 0.4);
+      if (!near || near.name !== namedSpot) onSaveSpot?.(namedSpot, lat, lng);
+    }
     const row: CatchRow = {
       id: `u-${Date.now()}`,
       date,
@@ -212,6 +230,7 @@ export function PhotoDesk({
       source: "you",
       lat,
       lng,
+      spotName: namedSpot,
       meteo: loggedSnap(snap, tidePhrase({ tideStage: tide, tideHours, tideTurn }), water, air, wind, windDir),
     };
     onAdd(row);
@@ -353,6 +372,23 @@ export function PhotoDesk({
           </div>
           {basis ? <p className="text-sm text-muted">Length basis: {basis}. Not a legal measurement.</p> : null}
           {place ? <p className="text-sm text-muted">{place.line}</p> : null}
+          {lat != null && lng != null ? (
+            <label className="text-sm text-muted">
+              User Spot Name
+              <input
+                className={field}
+                value={spotName}
+                onChange={(event) => {
+                  spotEdited.current = true;
+                  setSpotName(event.target.value);
+                }}
+                placeholder="Name this spot from the photo location"
+              />
+              <span className="mt-1 block text-xs">
+                Optional. The name is saved with this catch and reused on the map, in the log, and in When & Where.
+              </span>
+            </label>
+          ) : null}
           {lat != null && lng != null ? <PhotoPin lat={lat} lng={lng} /> : null}
           <div className="flex flex-wrap gap-2">
             <button

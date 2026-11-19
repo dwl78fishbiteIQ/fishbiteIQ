@@ -1123,6 +1123,10 @@ function clusterRows(rows: CatchRow[], waypoints: Waypoint[]): LogCluster[] {
 }
 
 function placeOf(row: CatchRow, waypoints: Waypoint[]): { id: string; name: string; lat: number; lng: number } | null {
+  const named = row.spotName?.trim();
+  if (named && row.lat != null && row.lng != null) {
+    return { id: `user-${named.toLowerCase()}`, name: named, lat: row.lat, lng: row.lng };
+  }
   if (row.lat != null && row.lng != null) {
     const mark = nearestWaypoint(row.lat, row.lng, waypoints, 0.45);
     if (mark) return { id: `wp-${mark.id}`, name: mark.name, lat: mark.lat, lng: mark.lng };
@@ -1637,7 +1641,7 @@ export function logRowPreview(row: CatchRow): string {
   const cells = [
     row.date,
     row.startTime,
-    spot?.name ?? row.spotId,
+    spot?.name ?? row.spotName ?? row.spotId,
     spot?.area ?? "",
     row.tideStage,
     row.waterTempF == null ? "" : String(row.waterTempF),

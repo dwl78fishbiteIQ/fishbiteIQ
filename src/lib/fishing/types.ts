@@ -66,6 +66,8 @@ export type CatchRow = {
   /** Decimal degrees from the photo file, when the camera stored them. */
   lat?: number | null;
   lng?: number | null;
+  /** Name the angler gave this photo's location. */
+  spotName?: string;
   /** Open-Meteo reading for the photo's place and hour. */
   meteo?: MeteoSnap | null;
 };
