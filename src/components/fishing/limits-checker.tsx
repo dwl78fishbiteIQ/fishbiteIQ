@@ -24,7 +24,7 @@ export function LimitsChecker() {
       </p>
 
       <label className="block text-sm text-muted" htmlFor="limit-species">
-        Species
+        Select Species to check SCDNR regulations
         <select
           id="limit-species"
           value={rule.id}
