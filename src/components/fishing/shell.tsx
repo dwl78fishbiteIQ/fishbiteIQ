@@ -369,8 +369,8 @@ function NavButton({
         aria-current={active ? "page" : undefined}
         className={cn("relative inline-flex items-center justify-center", className)}
       >
-        <img src="/logos/fish-outline.png" alt="" className="relative z-0 h-[2.125rem] w-auto grayscale" />
-        <span className="pointer-events-none absolute top-1/2 left-[57%] z-10 -translate-x-1/2 -translate-y-1/2 font-display text-[0.744rem] font-semibold tracking-wide text-white">
+        <img src="/logos/fish-outline.png" alt="" className="relative z-0 h-[2.125rem] w-auto -scale-x-100 grayscale" />
+        <span className="pointer-events-none absolute top-1/2 left-[43%] z-10 -translate-x-1/2 -translate-y-1/2 font-display text-[0.744rem] font-semibold tracking-wide text-white">
           Home
         </span>
       </button>
