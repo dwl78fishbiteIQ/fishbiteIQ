@@ -134,8 +134,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           )}
           {namingNote ? <p className="text-center text-sm text-accent">{namingNote}</p> : null}
           <nav className="relative flex items-center justify-center" aria-label="Sections">
-          <NavButton item={NAV[0]} active={view === NAV[0].id} onClick={() => leave(NAV[0].id)} />
-          <div className="absolute right-0">
+          <div className="absolute left-0">
             <button
               type="button"
               aria-expanded={menuOpen}
@@ -145,24 +144,41 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             >
               {menuOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
             </button>
-            {menuOpen ? (
-              <div className="absolute top-12 right-0 z-20 flex w-56 flex-col rounded-xl border border-border bg-surface p-1 shadow-lg">
-                {NAV.slice(1).map((item) => (
-                  <NavButton
-                    key={item.id}
-                    item={item}
-                    active={view === item.id}
-                    onClick={() => leave(item.id)}
-                    className="w-full justify-start"
-                    menu
-                  />
-                ))}
-              </div>
-            ) : null}
           </div>
+          <NavButton item={NAV[0]} active={view === NAV[0].id} onClick={() => leave(NAV[0].id)} />
           </nav>
         </div>
       </header>
+
+      {menuOpen ? (
+        <>
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="fixed inset-0 z-[1500] bg-black/45"
+            onClick={() => setMenuOpen(false)}
+          />
+          <nav
+            aria-label="Sections"
+            className="fixed top-0 left-0 z-[1501] flex h-dvh w-64 flex-col gap-1 overflow-y-auto border-r border-border bg-surface p-3 shadow-lg"
+            onMouseLeave={() => {
+              if (window.matchMedia("(pointer: coarse)").matches) return;
+              setMenuOpen(false);
+            }}
+          >
+            {NAV.map((item) => (
+              <NavButton
+                key={item.id}
+                item={item}
+                active={view === item.id}
+                onClick={() => leave(item.id)}
+                className="w-full justify-start"
+                menu
+              />
+            ))}
+          </nav>
+        </>
+      ) : null}
 
       {installOpen ? <InstallPopup onClose={() => setInstallOpen(false)} onNever={hideInstallForever} /> : null}
 
@@ -345,7 +361,7 @@ function NavButton({
   menu?: boolean;
 }) {
   const Icon = item.icon;
-  if (item.id === "advise") {
+  if (item.id === "advise" && !menu) {
     return (
       <button
         type="button"
