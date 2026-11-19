@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { LoaderCircle } from "lucide-react";
+import { Camera, LoaderCircle } from "lucide-react";
 import { BaitPicker } from "@/components/fishing/bait-picker";
 import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { suggestedFilename } from "@/lib/fishing/advisor";
@@ -251,8 +251,9 @@ export function PhotoDesk({
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
-          className="flex h-16 w-full items-center justify-center rounded-xl bg-accent px-4 text-center font-display text-2xl font-black text-accent-fg shadow-[0_10px_28px_rgb(224_138_60/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgb(224_138_60/0.42)] active:translate-y-0 active:brightness-100 motion-reduce:transition-none motion-reduce:hover:transform-none"
+          className="flex h-16 w-full items-center justify-center gap-3 rounded-xl bg-accent px-4 text-center font-sans text-2xl font-bold text-accent-fg shadow-[0_10px_28px_rgb(224_138_60/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgb(224_138_60/0.42)] active:translate-y-0 active:brightness-100 motion-reduce:transition-none motion-reduce:hover:transform-none"
         >
+          <Camera className="size-7 shrink-0" strokeWidth={2.25} aria-hidden="true" />
           Upload Your Fish Photo!
         </button>
         <input
