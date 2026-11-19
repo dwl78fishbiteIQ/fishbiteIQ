@@ -5,7 +5,7 @@ export function AmpText({ text, className }: { text: string; className?: string 
     <span className={className}>
       {parts.map((part, index) => (
         <span key={index}>
-          {index > 0 ? <span className="font-amp italic">&</span> : null}
+          {index > 0 ? <span className="font-amp">&</span> : null}
           {part}
         </span>
       ))}
