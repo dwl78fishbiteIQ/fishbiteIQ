@@ -94,7 +94,6 @@ export function AdviceCard({
                     {pick.tideStage}
                   </p>
                   <p className="mt-1 text-sm font-medium text-fg tabular-nums">{pick.windowLabel}</p>
-                  {lat != null && lng != null ? <PickMap lat={lat} lng={lng} name={name} /> : null}
                   {pick.reasons.length ? (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-fg">
                       {pick.reasons.map((reason) => (
@@ -103,6 +102,7 @@ export function AdviceCard({
                     </ul>
                   ) : null}
                   <Citations citations={pick.citations} onOpenTrip={onOpenTrip} />
+                  {lat != null && lng != null ? <PickMap lat={lat} lng={lng} name={name} /> : null}
                 </li>
               );
             })}

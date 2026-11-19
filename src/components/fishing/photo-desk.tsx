@@ -389,7 +389,6 @@ export function PhotoDesk({
               </span>
             </label>
           ) : null}
-          {lat != null && lng != null ? <PhotoPin lat={lat} lng={lng} /> : null}
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -407,6 +406,7 @@ export function PhotoDesk({
               Cancel
             </button>
           </div>
+          {lat != null && lng != null ? <PhotoPin lat={lat} lng={lng} /> : null}
         </>
       ) : null}
 

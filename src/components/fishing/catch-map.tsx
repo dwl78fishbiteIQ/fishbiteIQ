@@ -244,15 +244,6 @@ export function CatchMap({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border">
-        <div
-          ref={host}
-          className={compact ? "catch-map is-compact" : "catch-map"}
-          role="application"
-          aria-label="Map of catches"
-        />
-      </div>
-
       {!compact && (draft || selected) ? (
         <form
           className="flex flex-wrap items-center gap-2"
@@ -353,6 +344,15 @@ export function CatchMap({
           })}
         </ul>
       )}
+
+      <div className="overflow-hidden rounded-xl border border-border">
+        <div
+          ref={host}
+          className={compact ? "catch-map is-compact" : "catch-map"}
+          role="application"
+          aria-label="Map of catches"
+        />
+      </div>
     </div>
   );
 }
