@@ -273,7 +273,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             onDeleteWaypoint={marks.remove}
           />
         ) : null}
-        {view === "spots" ? <SpotGuide /> : null}
+        {view === "spots" ? <SpotGuide waypoints={marks.waypoints} /> : null}
         {view === "season" ? <SeasonBoard rows={log.rows} /> : null}
         {view === "about" ? <AboutApp /> : null}
       </main>

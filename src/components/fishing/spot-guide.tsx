@@ -1,14 +1,62 @@
+import { describePlace } from "@/lib/fishing/waters";
+import type { Waypoint } from "@/lib/fishing/waypoints";
 import { SPOTS } from "@/lib/fishing/spots";
 
-export function SpotGuide() {
+export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
+  const yours = [...waypoints].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-3xl text-fg">Spot guide</h2>
         <p className="max-w-2xl text-sm text-muted">
-          Public water this guide already covers. Depths and tide offsets are approximate.
+          Your named spots are listed with the public water this guide already covers. Depths and tide offsets on the
+          public spots are approximate. When & Where uses both.
         </p>
       </div>
+      <section className="space-y-3">
+        <h3 className="text-xl text-fg">Your spots</h3>
+        {yours.length ? (
+          <ul className="grid gap-4 md:grid-cols-2">
+            {yours.map((spot) => {
+              const place = describePlace(spot.lat, spot.lng);
+              return (
+                <li key={spot.id} className="rounded-xl border border-border bg-surface p-4">
+                  <p className="text-xs font-semibold tracking-widest text-accent uppercase">Your spot</p>
+                  <h3 className="text-2xl text-fg">{spot.name}</h3>
+                  <p className="mt-2 text-sm text-fg">
+                    Named from a photo. Catches logged here are used in When & Where.
+                  </p>
+                  <p className="mt-2 text-sm text-muted">
+                    Closest public landing · {place.landing}, {place.landingMiles.toFixed(1)} mi
+                    {place.landingLat != null ? (
+                      <>
+                        {" · "}
+                        <a
+                          className="text-accent underline"
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${place.landingLat},${place.landingLng}&travelmode=driving`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Directions
+                        </a>
+                      </>
+                    ) : null}
+                  </p>
+                  <p className="mt-2 text-xs text-muted tabular-nums">
+                    {spot.lat.toFixed(4)}, {spot.lng.toFixed(4)}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">
+            None yet. Add a User Spot Name when you confirm a photo. It shows up here and in When & Where.
+          </p>
+        )}
+      </section>
+      <section className="space-y-3">
+        <h3 className="text-xl text-fg">Public spots</h3>
       <ul className="grid gap-4 md:grid-cols-2">
         {SPOTS.map((spot) => (
           <li key={spot.id} className="overflow-hidden rounded-xl border border-border bg-surface">
@@ -62,6 +110,7 @@ export function SpotGuide() {
           </li>
         ))}
       </ul>
+      </section>
     </div>
   );
 }
