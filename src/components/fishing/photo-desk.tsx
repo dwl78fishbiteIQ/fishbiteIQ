@@ -258,6 +258,13 @@ export function PhotoDesk({
             className="size-[42px] shrink-0"
             aria-hidden="true"
           >
+            <defs>
+              <radialGradient id="camera-lens" cx="38%" cy="32%" r="70%">
+                <stop offset="0%" stopColor="#f4f7fb" />
+                <stop offset="45%" stopColor="#b7c0cc" />
+                <stop offset="100%" stopColor="#5c6773" />
+              </radialGradient>
+            </defs>
             <path
               d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
               fill="#c4362c"
@@ -265,7 +272,7 @@ export function PhotoDesk({
               strokeWidth="2"
               strokeLinejoin="round"
             />
-            <circle cx="12" cy="13" r="3" fill="#e08a3c" stroke="#1a1208" strokeWidth="2" />
+            <circle cx="12" cy="13" r="3" fill="url(#camera-lens)" stroke="#1a1208" strokeWidth="2" />
           </svg>
           <span className="font-sans text-2xl font-black text-black uppercase [-webkit-text-stroke:4px_#fff] [paint-order:stroke_fill]">
             Upload Your Fish Photo!
