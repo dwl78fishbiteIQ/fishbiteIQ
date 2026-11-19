@@ -345,6 +345,21 @@ function NavButton({
   menu?: boolean;
 }) {
   const Icon = item.icon;
+  if (item.id === "advise") {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-current={active ? "page" : undefined}
+        className={cn("relative inline-flex items-center justify-center", className)}
+      >
+        <img src="/logos/fish-outline.png" alt="" className="h-16 w-auto" />
+        <span className="pointer-events-none absolute top-1/2 left-[57%] -translate-x-1/2 -translate-y-1/2 font-display text-base font-semibold tracking-wide text-white">
+          Home
+        </span>
+      </button>
+    );
+  }
   return (
     <button
       type="button"
@@ -361,11 +376,7 @@ function NavButton({
         className,
       )}
     >
-      {item.id === "advise" ? (
-        <img src="/logos/fish-outline.png" alt="" className="h-7 w-auto" />
-      ) : (
-        <Icon className="size-4" aria-hidden="true" />
-      )}
+      <Icon className="size-4" aria-hidden="true" />
       {item.label}
     </button>
   );
