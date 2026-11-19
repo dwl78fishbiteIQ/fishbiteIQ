@@ -242,7 +242,11 @@ export function PhotoDesk({
   if (launch) {
     return (
       <section id="photo-desk" className="space-y-3">
-        <LogHeading settings={settings} onToggle={() => setSettings((open) => !open)} />
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setSettings((open) => !open)} className="text-sm text-accent underline">
+            {settings ? "Hide picture settings" : "Check My Phone Picture Settings"}
+          </button>
+        </div>
         {settings ? <PhoneSettings /> : null}
         <button
           type="button"
