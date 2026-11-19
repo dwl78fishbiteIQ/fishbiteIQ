@@ -1,3 +1,4 @@
+import { AmpText } from "@/components/fishing/amp-text";
 import { describePlace } from "@/lib/fishing/waters";
 import type { Waypoint } from "@/lib/fishing/waypoints";
 import { SPOTS } from "@/lib/fishing/spots";
@@ -10,7 +11,7 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
         <h2 className="text-3xl text-fg">Spot guide</h2>
         <p className="max-w-2xl text-sm text-muted">
           Your named spots are listed with the public water this guide already covers. Depths and tide offsets on the
-          public spots are approximate. When & Where uses both.
+          public spots are approximate. <AmpText text="When & Where uses both." />
         </p>
       </div>
       <section className="space-y-3">
@@ -23,7 +24,7 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
                   <p className="text-xs font-semibold tracking-widest text-accent uppercase">Your spot</p>
                   <h3 className="text-2xl text-fg">{spot.name}</h3>
                   <p className="mt-2 text-sm text-fg">
-                    Named from a photo. Catches logged here are used in When & Where.
+                    Named from a photo. <AmpText text="Catches logged here are used in When & Where." />
                   </p>
                   <div className="mt-2">
                     <LandingRoute lat={spot.lat} lng={spot.lng} />
@@ -37,7 +38,7 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
           </ul>
         ) : (
           <p className="text-sm text-muted">
-            None yet. Add a User Spot Name when you confirm a photo. It shows up here and in When & Where.
+            <AmpText text="None yet. Add a User Spot Name when you confirm a photo. It shows up here and in When & Where." />
           </p>
         )}
       </section>

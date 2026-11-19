@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, CalendarDays, CloudSun, Compass, Fish, Info, Lightbulb, Map, MapPinned, Menu, Scale, TrendingUp, Trophy, Waves, X } from "lucide-react";
+import { AmpText } from "@/components/fishing/amp-text";
 import { AboutApp } from "@/components/fishing/about-app";
 import { AdviseView } from "@/components/fishing/advise-view";
 import { CatchMap } from "@/components/fishing/catch-map";
@@ -396,7 +397,7 @@ function NavButton({
       )}
     >
       <Icon className="size-4" aria-hidden="true" />
-      {item.label}
+      <AmpText text={item.label} />
     </button>
   );
 }

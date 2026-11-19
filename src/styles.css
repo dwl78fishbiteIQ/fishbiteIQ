@@ -3,6 +3,7 @@
 @theme {
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-amp: "Playfair Display", Georgia, serif;
   --color-bg: #0c1613;
   --color-surface: #15211c;
   --color-surface-2: #1c2c26;

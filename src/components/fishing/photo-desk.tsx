@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { LoaderCircle } from "lucide-react";
+import { AmpText } from "@/components/fishing/amp-text";
 import { BaitPicker } from "@/components/fishing/bait-picker";
 import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { suggestedFilename } from "@/lib/fishing/advisor";
@@ -413,7 +414,7 @@ export function PhotoDesk({
                 placeholder="Name this spot from the photo location"
               />
               <span className="mt-1 block text-xs">
-                Optional. The name is saved with this catch and reused on the map, in the log, and in When & Where.
+                <AmpText text="Optional. The name is saved with this catch and reused on the map, in the log, and in When & Where." />
               </span>
             </label>
           ) : null}
@@ -479,7 +480,7 @@ function PhoneSettings() {
       <div>
         <h3 className="text-base text-fg">iPhone</h3>
         <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
-          <li>Settings, Privacy & Security, Location Services: turn Location Services on.</li>
+          <li><AmpText text="Settings, Privacy & Security, Location Services: turn Location Services on." /></li>
           <li>Location Services, Camera: set it to While Using the App.</li>
           <li>On that same Camera page, turn Precise Location on.</li>
           <li>Settings, Camera, Formats: choose Most Compatible so the photo is a JPEG this app can read.</li>

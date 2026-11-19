@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AmpText } from "@/components/fishing/amp-text";
 import { LIMITS, LIMITS_SOURCE, seasonLine } from "@/lib/fishing/limits";
 import { formatPrettyDate, todayInCharleston } from "@/lib/fishing/time";
 import { cn } from "@/lib/cn";
@@ -14,7 +15,7 @@ export function LimitsChecker() {
       <div>
         <h2 className="flex items-center gap-3 text-3xl text-fg">
           <img src="/logos/scdnr-seal.png" alt="" className="h-14 w-14 shrink-0" />
-          Regulations & limits checker
+          <AmpText text="Regulations & limits checker" />
         </h2>
         <p className="max-w-2xl text-sm text-muted">
           Every saltwater species in the 2026–2027 South Carolina guide, A to Z. Updated August 11,

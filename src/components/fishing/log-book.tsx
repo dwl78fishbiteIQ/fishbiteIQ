@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AmpText } from "@/components/fishing/amp-text";
 import { logRowPreview } from "@/lib/fishing/advisor";
 import { exportBackup, installBackup, readBackup } from "@/lib/fishing/backup";
 import { moonOn } from "@/lib/fishing/moon";
@@ -846,7 +847,7 @@ function ClearedGuide({ onDone }: { onDone: () => void }) {
       <ol className="list-decimal space-y-2 pl-5 text-sm text-muted">
         <li>Use the photos from the camera roll. A text, a social post, a screenshot, or an edited copy usually has no location and no time taken.</li>
         <li>
-          Turn location on before you rely on older pictures. iPhone: Settings, Privacy & Security, Location
+          <AmpText text="Turn location on before you rely on older pictures. iPhone: Settings, Privacy & Security, Location" />
           Services, Camera, set to While Using the App, and turn Precise Location on. Settings, Camera, Formats:
           Most Compatible. Android: turn the phone Location on, and turn location tags on in the camera.
         </li>

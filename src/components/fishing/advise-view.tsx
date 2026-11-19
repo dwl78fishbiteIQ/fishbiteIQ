@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { AmpText } from "@/components/fishing/amp-text";
 import { Mic } from "lucide-react";
 import { AdviceCard } from "@/components/fishing/advice-card";
 import { BiteCalendar } from "@/components/fishing/bite-calendar";
@@ -461,7 +462,7 @@ export function AdviseView({
       ) : (
         <>
           <div>
-            <h2 className="text-3xl text-fg">When & Where</h2>
+            <h2 className="text-3xl text-fg"><AmpText text="When & Where" /></h2>
             <p className="text-sm text-muted">
               Ask in your own words. The answer uses your catch log and the forecast for the day
               you name: wind, water, pressure, clouds, waves, tide, and moon.
@@ -546,7 +547,7 @@ function PredictionWindow({
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <h2 id="prediction-title" className="text-2xl text-fg">
-            When & Where
+            <AmpText text="When & Where" />
           </h2>
           <div className="flex gap-2">
             <button
