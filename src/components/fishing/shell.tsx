@@ -126,7 +126,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
               <button
                 type="button"
                 onClick={() => setInstallOpen(true)}
-                className="rounded-md border-2 border-accent bg-danger px-3 py-1 font-display text-sm font-semibold tracking-wide text-white shadow-[0_6px_14px_rgb(196_54_44/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_10px_18px_rgb(196_54_44/0.4)] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:transform-none"
+                className="rounded-md border-[3px] border-accent bg-black px-3 py-1 font-display text-sm font-semibold tracking-wide text-white shadow-[0_6px_14px_rgb(0_0_0/0.35)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_10px_18px_rgb(0_0_0/0.45)] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:transform-none"
               >
                 Add FishBiteIQ App to your phone
               </button>
