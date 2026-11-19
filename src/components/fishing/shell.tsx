@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, CalendarDays, CloudSun, Compass, Fish, Info, Lightbulb, Map, MapPinned, Menu, TrendingUp, Trophy, Waves, X } from "lucide-react";
+import { BookOpen, CalendarDays, CloudSun, Compass, Fish, Info, Lightbulb, Map, MapPinned, Menu, Scale, TrendingUp, Trophy, Waves, X } from "lucide-react";
 import { AboutApp } from "@/components/fishing/about-app";
 import { AdviseView } from "@/components/fishing/advise-view";
 import { CatchMap } from "@/components/fishing/catch-map";
 import { FishTrends } from "@/components/fishing/fish-trends";
 import { ForecastView } from "@/components/fishing/forecast-view";
+import { LimitsChecker } from "@/components/fishing/limits-checker";
 import { LogBook } from "@/components/fishing/log-book";
 import { PersonalBests } from "@/components/fishing/personal-bests";
 import { PhotoDesk } from "@/components/fishing/photo-desk";
@@ -19,7 +20,7 @@ import { loadPhoto } from "@/lib/fishing/photos";
 import { useCatchLog } from "@/lib/fishing/use-log";
 import { useWaypoints } from "@/lib/fishing/waypoints";
 
-type View = "advise" | "why" | "bests" | "when" | "trends" | "upload" | "forecast" | "tides" | "log" | "map" | "spots" | "season" | "about";
+type View = "advise" | "why" | "bests" | "when" | "trends" | "upload" | "forecast" | "tides" | "log" | "map" | "spots" | "season" | "limits" | "about";
 
 const TIDES_URL =
   "https://charlestonfishing.com/tides/Charleston-8665530?z=12&lat=32.78167&lng=-79.92500";
@@ -36,6 +37,7 @@ const NAV: { id: View; label: string; short: string; icon: typeof Fish }[] = [
   { id: "forecast", label: "Forecast", short: "Sky", icon: CloudSun },
   { id: "spots", label: "Spots", short: "Spots", icon: MapPinned },
   { id: "season", label: "Season", short: "Season", icon: CalendarDays },
+  { id: "limits", label: "Regulations & limits checker", short: "Limits", icon: Scale },
   { id: "about", label: "About FishBiteIQ", short: "About", icon: Info },
 ];
 
@@ -285,6 +287,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
         ) : null}
         {view === "spots" ? <SpotGuide waypoints={marks.waypoints} /> : null}
         {view === "season" ? <SeasonBoard rows={log.rows} /> : null}
+        {view === "limits" ? <LimitsChecker /> : null}
         {view === "about" ? <AboutApp /> : null}
       </main>
       <footer className="flex items-center justify-between gap-3 px-4 py-6 text-sm text-muted">
