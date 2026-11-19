@@ -135,10 +135,15 @@
 }
 
 .catch-map .leaflet-container,
-.catch-map.leaflet-container {
+.catch-map.leaflet-container,
+.pick-map.leaflet-container {
   width: 100%;
   background: var(--color-map);
   font-family: var(--font-sans);
+  /* Keep tiles and pins inside the map so popups always paint above them. */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
 }
 
 /* Leaflet paints tiles with plus-lighter, which erases a dark map. */

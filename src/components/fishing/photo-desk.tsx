@@ -411,7 +411,7 @@ export function PhotoDesk({
       ) : null}
 
       {logged ? (
-        <div className="fixed inset-0 z-[1100] flex flex-col items-center justify-center gap-8 bg-bg px-6">
+        <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center gap-8 bg-bg px-6">
           <LoaderCircle className="size-20 animate-spin text-accent" aria-hidden="true" />
           <p className="text-center text-5xl leading-tight text-fg md:text-7xl">Catch Successfully Logged!</p>
         </div>

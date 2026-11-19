@@ -533,7 +533,7 @@ function PredictionWindow({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-4 sm:items-center">
+    <div className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/60 p-4 sm:items-center">
       <section
         role="dialog"
         aria-modal="true"

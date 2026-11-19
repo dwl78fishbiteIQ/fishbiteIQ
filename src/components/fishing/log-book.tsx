@@ -605,7 +605,7 @@ function RollWindow({ status, onClose }: { status: RollStatus; onClose: () => vo
   const running = status.summary == null && !status.error;
   const pct = status.total ? Math.round((status.done / status.total) * 100) : 0;
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-4 sm:items-center">
+    <div className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/60 p-4 sm:items-center">
       <section className="flex max-h-[85dvh] w-full max-w-md flex-col gap-3 overflow-hidden rounded-xl border border-border bg-surface p-4">
         <h2 className="text-2xl text-fg">Camera roll upload</h2>
         <p className="text-sm text-fg">
