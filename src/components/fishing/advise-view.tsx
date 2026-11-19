@@ -434,7 +434,7 @@ export function AdviseView({
 
           <section className="space-y-3 rounded-xl border-2 border-accent p-4">
             <h2 className="text-center font-display text-3xl leading-none font-semibold">
-              <span className="text-white italic [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]">Guide me </span>
+              <span className="text-[#c4362c] italic [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]">Guide me </span>
               <span className="text-white [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]">FishBite</span>
               <span className="text-accent [-webkit-text-stroke:0.6px_#1a1208] [paint-order:stroke_fill]">IQ...</span>
             </h2>
