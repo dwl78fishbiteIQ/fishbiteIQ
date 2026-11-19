@@ -132,12 +132,10 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
               </button>
             </div>
           )}
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            {namingNote ? <p className="text-sm text-accent">{namingNote}</p> : null}
-          </div>
-          <nav className="relative flex items-center gap-1" aria-label="Sections">
-            <NavButton item={NAV[0]} active={view === NAV[0].id} onClick={() => leave(NAV[0].id)} />
+          {namingNote ? <p className="text-center text-sm text-accent">{namingNote}</p> : null}
+          <nav className="relative flex items-center justify-center" aria-label="Sections">
+          <NavButton item={NAV[0]} active={view === NAV[0].id} onClick={() => leave(NAV[0].id)} />
+          <div className="absolute right-0">
             <button
               type="button"
               aria-expanded={menuOpen}
@@ -161,8 +159,8 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
                 ))}
               </div>
             ) : null}
-          </nav>
           </div>
+          </nav>
         </div>
       </header>
 
@@ -363,7 +361,11 @@ function NavButton({
         className,
       )}
     >
-      <Icon className="size-4" aria-hidden="true" />
+      {item.id === "advise" ? (
+        <img src="/logos/fish-outline.png" alt="" className="h-7 w-auto" />
+      ) : (
+        <Icon className="size-4" aria-hidden="true" />
+      )}
       {item.label}
     </button>
   );
