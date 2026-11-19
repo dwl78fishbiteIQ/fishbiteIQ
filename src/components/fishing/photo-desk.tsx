@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Camera, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { BaitPicker } from "@/components/fishing/bait-picker";
 import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { suggestedFilename } from "@/lib/fishing/advisor";
@@ -253,7 +253,20 @@ export function PhotoDesk({
           onClick={() => fileInput.current?.click()}
           className="flex h-16 w-full items-center justify-center gap-3 rounded-xl bg-accent px-4 text-center shadow-[0_10px_28px_rgb(224_138_60/0.28)] transition duration-200 ease-out hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgb(224_138_60/0.42)] active:translate-y-0 active:brightness-100 motion-reduce:transition-none motion-reduce:hover:transform-none"
         >
-          <Camera className="size-7 shrink-0 text-accent-fg" strokeWidth={2.25} aria-hidden="true" />
+          <svg
+            viewBox="0 0 24 24"
+            className="size-[42px] shrink-0"
+            aria-hidden="true"
+          >
+            <path
+              d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
+              fill="#c4362c"
+              stroke="#1a1208"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <circle cx="12" cy="13" r="3" fill="#e08a3c" stroke="#1a1208" strokeWidth="2" />
+          </svg>
           <span className="font-sans text-2xl font-black text-black uppercase [-webkit-text-stroke:4px_#fff] [paint-order:stroke_fill]">
             Upload Your Fish Photo!
           </span>
