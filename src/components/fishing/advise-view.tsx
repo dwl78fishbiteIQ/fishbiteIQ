@@ -436,6 +436,7 @@ export function AdviseView({
             <h2 className="text-center font-display text-3xl leading-none font-semibold">
               <span className="text-white [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]">Guide me FishBite</span>
               <span className="text-accent [-webkit-text-stroke:0.6px_#1a1208] [paint-order:stroke_fill]">IQ</span>
+              <span className="text-white [-webkit-text-stroke:0.6px_#c47a32] [paint-order:stroke_fill]"> . . .</span>
             </h2>
             <p className="text-sm text-muted">
               Ask in your own words. The answer uses your catch log and the forecast for the day
