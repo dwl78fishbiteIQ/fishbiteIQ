@@ -47,26 +47,6 @@ export function LimitsChecker() {
         <p className="mt-1 text-muted">{rule.note}</p>
       </div>
 
-      <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
-        {LIMITS.map((item) => {
-          const itemStatus = item.season(today);
-          return (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => setSpeciesId(item.id)}
-                className={cn("flex w-full items-center justify-between gap-3 px-4 py-3 text-left", item.id === rule.id && "bg-bg")}
-              >
-                <span className="text-sm text-fg">{item.name}</span>
-                <span className={cn("shrink-0 text-xs font-semibold", itemStatus.closed ? "text-danger" : "text-go")}>
-                  {itemStatus.label}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
       <p className="text-sm text-muted">
         You still need a saltwater fishing license if you are 16 or older. Federal seasons can close
         when a quota is met.{" "}
