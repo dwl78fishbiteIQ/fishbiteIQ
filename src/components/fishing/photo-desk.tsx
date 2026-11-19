@@ -274,7 +274,7 @@ export function PhotoDesk({
             />
             <circle cx="12" cy="13" r="3" fill="url(#camera-lens)" stroke="#1a1208" strokeWidth="2" />
           </svg>
-          <span className="text-balance text-center font-sans text-xl font-black leading-none tracking-wide text-black uppercase [-webkit-text-stroke:1.5px_#fff] [paint-order:stroke_fill] sm:text-2xl">
+          <span className="text-balance text-center font-sans text-xl font-black leading-none tracking-wide text-black uppercase [-webkit-text-stroke:1.5px_#7a3b12] [paint-order:stroke_fill] sm:text-2xl">
             Upload Your Fish Photo!
           </span>
         </button>
