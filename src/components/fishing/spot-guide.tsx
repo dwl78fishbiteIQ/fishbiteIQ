@@ -18,7 +18,6 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
         {yours.length ? (
           <ul className="grid gap-4 md:grid-cols-2">
             {yours.map((spot) => {
-              const place = describePlace(spot.lat, spot.lng);
               return (
                 <li key={spot.id} className="rounded-xl border border-border bg-surface p-4">
                   <p className="text-xs font-semibold tracking-widest text-accent uppercase">Your spot</p>
@@ -26,22 +25,9 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
                   <p className="mt-2 text-sm text-fg">
                     Named from a photo. Catches logged here are used in When & Where.
                   </p>
-                  <p className="mt-2 text-sm text-muted">
-                    Closest public landing · {place.landing}, {place.landingMiles.toFixed(1)} mi by water
-                    {place.landingLat != null ? (
-                      <>
-                        {" · "}
-                        <a
-                          className="text-accent underline"
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${place.landingLat},${place.landingLng}&travelmode=driving`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Directions
-                        </a>
-                      </>
-                    ) : null}
-                  </p>
+                  <div className="mt-2">
+                    <LandingRoute lat={spot.lat} lng={spot.lng} />
+                  </div>
                   <p className="mt-2 text-xs text-muted tabular-nums">
                     {spot.lat.toFixed(4)}, {spot.lng.toFixed(4)}
                   </p>
@@ -80,6 +66,7 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
                 <p className="text-sm text-muted">{spot.area}</p>
               </div>
               <p className="text-sm text-fg">{spot.blurb}</p>
+              <LandingRoute lat={spot.lat} lng={spot.lng} />
               <dl className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <dt className="text-muted">Depth</dt>
@@ -111,6 +98,16 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
         ))}
       </ul>
       </section>
+    </div>
+  );
+}
+
+function LandingRoute({ lat, lng }: { lat: number; lng: number }) {
+  const place = describePlace(lat, lng);
+  return (
+    <div className="text-sm">
+      <p className="text-muted">Closest public landing · {place.landing}</p>
+      <p className="text-fg">{place.directions}</p>
     </div>
   );
 }

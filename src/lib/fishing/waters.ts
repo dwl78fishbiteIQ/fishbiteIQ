@@ -6,6 +6,9 @@ export type PlaceLabel = {
   landingMiles: number;
   landingLat: number;
   landingLng: number;
+  /** Creeks and rivers to run, in order, from the spot to the landing. */
+  waters: string[];
+  directions: string;
 };
 
 type Waterway = { name: string; points: [number, number][] };
@@ -95,6 +98,8 @@ export function describePlace(lat: number, lng: number): PlaceLabel {
     landingMiles: landing.miles,
     landingLat: landing.lat,
     landingLng: landing.lng,
+    waters: landing.waters,
+    directions: landing.directions,
   };
 }
 
@@ -125,44 +130,75 @@ const CONNECTORS: Waterway[] = [
 type Pt = [number, number];
 type Segment = { name: string; a: Pt; b: Pt; aId: number; bId: number };
 type Graph = {
-  edges: { to: number; miles: number }[][];
+  edges: { to: number; miles: number; name: string }[][];
   segments: Segment[];
   landings: { name: string; lat: number; lng: number; node: number; off: number; seg: number; point: Pt }[];
 };
 
 let routeGraph: Graph | null = null;
 
-function nearestLanding(lat: number, lng: number): { name: string; miles: number; lat: number; lng: number } {
+function nearestLanding(lat: number, lng: number): {
+  name: string;
+  miles: number;
+  lat: number;
+  lng: number;
+  waters: string[];
+  directions: string;
+} {
   const graph = waterGraph();
   const snap = nearestSegment(lat, lng, graph.segments, 4);
   if (!snap) return straightLanding(lat, lng);
   const fromA = routeMiles(graph, snap.seg.aId);
   const fromB = routeMiles(graph, snap.seg.bId);
-  let best: { name: string; miles: number; lat: number; lng: number } | null = null;
+  let best: { name: string; miles: number; lat: number; lng: number; waters: string[] } | null = null;
   for (const landing of graph.landings) {
-    const alongEnds = Math.min(snap.toA + fromA[landing.node], snap.toB + fromB[landing.node]);
-    const alongSame = snap.seg === graph.segments[landing.seg] ? milesBetween(snap.point[0], snap.point[1], landing.point[0], landing.point[1]) : Infinity;
-    const miles = snap.miles + landing.off + Math.min(alongEnds, alongSame);
+    const viaA = snap.toA + fromA.dist[landing.node];
+    const viaB = snap.toB + fromB.dist[landing.node];
+    const alongSame =
+      snap.seg === graph.segments[landing.seg] ? milesBetween(snap.point[0], snap.point[1], landing.point[0], landing.point[1]) : Infinity;
+    const miles = snap.miles + landing.off + Math.min(viaA, viaB, alongSame);
     if (!Number.isFinite(miles)) continue;
-    if (!best || miles < best.miles) best = { name: landing.name, miles, lat: landing.lat, lng: landing.lng };
+    const waters =
+      alongSame <= viaA && alongSame <= viaB
+        ? [snap.seg.name]
+        : viaA <= viaB
+          ? watersAlong(graph, fromA.prev, snap.seg.aId, landing.node, snap.seg.name)
+          : watersAlong(graph, fromB.prev, snap.seg.bId, landing.node, snap.seg.name);
+    if (!best || miles < best.miles) best = { name: landing.name, miles, lat: landing.lat, lng: landing.lng, waters };
   }
-  return best ?? straightLanding(lat, lng);
+  if (!best) return straightLanding(lat, lng);
+  return { ...best, directions: directionSentence(best.waters, best.name, best.miles, true) };
 }
 
-function straightLanding(lat: number, lng: number): { name: string; miles: number; lat: number; lng: number } {
+function straightLanding(lat: number, lng: number): {
+  name: string;
+  miles: number;
+  lat: number;
+  lng: number;
+  waters: string[];
+  directions: string;
+} {
   let best = { name: LANDINGS[0].name, miles: Infinity, lat: LANDINGS[0].lat, lng: LANDINGS[0].lng };
   for (const landing of LANDINGS) {
     const miles = milesBetween(lat, lng, landing.lat, landing.lng);
     if (miles < best.miles) best = { name: landing.name, miles, lat: landing.lat, lng: landing.lng };
   }
-  return best;
+  return { ...best, waters: [], directions: directionSentence([], best.name, best.miles, false) };
+}
+
+function directionSentence(waters: string[], landing: string, miles: number, mapped: boolean): string {
+  const ramp = landing.replace(/\.$/, "");
+  if (!mapped) return `No channel is mapped from here. ${ramp} is ${miles.toFixed(1)} mi in a straight line.`;
+  const distance = `${miles.toFixed(1)} mi by water to ${ramp}.`;
+  if (waters.length <= 1) return waters[0] ? `${distance} Stay on ${waters[0]}.` : distance;
+  return `${distance} Run ${waters.join(", then ")}.`;
 }
 
 function waterGraph(): Graph {
   if (routeGraph) return routeGraph;
   const nodes: Pt[] = [];
   const keyToId = new Map<string, number>();
-  const edges: { to: number; miles: number }[][] = [];
+  const edges: { to: number; miles: number; name: string }[][] = [];
   const idOf = (point: Pt) => {
     const key = `${point[0].toFixed(4)},${point[1].toFixed(4)}`;
     const found = keyToId.get(key);
@@ -173,18 +209,18 @@ function waterGraph(): Graph {
     edges[id] = [];
     return id;
   };
-  const link = (a: number, b: number) => {
+  const link = (a: number, b: number, name: string) => {
     if (a === b) return;
     const miles = milesBetween(nodes[a][0], nodes[a][1], nodes[b][0], nodes[b][1]);
-    edges[a].push({ to: b, miles });
-    edges[b].push({ to: a, miles });
+    edges[a].push({ to: b, miles, name });
+    edges[b].push({ to: a, miles, name });
   };
   const segments: Segment[] = [];
   for (const route of [...WATERWAYS, ...CONNECTORS]) {
     let previous = idOf(route.points[0]);
     for (let i = 1; i < route.points.length; i += 1) {
       const next = idOf(route.points[i]);
-      link(previous, next);
+      link(previous, next, route.name);
       segments.push({ name: route.name, a: nodes[previous], b: nodes[next], aId: previous, bId: next });
       previous = next;
     }
@@ -195,8 +231,8 @@ function waterGraph(): Graph {
     const snap = onName ?? nearestSegment(landing.lat, landing.lng, segments, 3);
     if (!snap) return [];
     const node = idOf(snap.point);
-    link(node, snap.seg.aId);
-    link(node, snap.seg.bId);
+    link(node, snap.seg.aId, snap.seg.name);
+    link(node, snap.seg.bId, snap.seg.name);
     return [{ name: landing.name, lat: landing.lat, lng: landing.lng, node, off: snap.miles, seg: segments.indexOf(snap.seg), point: snap.point }];
   });
   routeGraph = { edges, segments, landings };
@@ -227,8 +263,9 @@ function projectToSegment(lat: number, lng: number, a: Pt, b: Pt) {
   };
 }
 
-function routeMiles(graph: Graph, start: number): number[] {
+function routeMiles(graph: Graph, start: number): { dist: number[]; prev: number[] } {
   const dist = Array(graph.edges.length).fill(Infinity);
+  const prev = Array(graph.edges.length).fill(-1);
   const used = Array(graph.edges.length).fill(false);
   dist[start] = 0;
   for (let step = 0; step < dist.length; step += 1) {
@@ -240,10 +277,34 @@ function routeMiles(graph: Graph, start: number): number[] {
     used[node] = true;
     for (const edge of graph.edges[node] ?? []) {
       const next = dist[node] + edge.miles;
-      if (next < dist[edge.to]) dist[edge.to] = next;
+      if (next < dist[edge.to]) {
+        dist[edge.to] = next;
+        prev[edge.to] = node;
+      }
     }
   }
-  return dist;
+  return { dist, prev };
+}
+
+function watersAlong(graph: Graph, prev: number[], from: number, to: number, startName: string): string[] {
+  const nodes: number[] = [];
+  let cursor = to;
+  const seen = new Set<number>();
+  while (cursor !== from && cursor >= 0 && !seen.has(cursor)) {
+    seen.add(cursor);
+    nodes.push(cursor);
+    cursor = prev[cursor];
+  }
+  if (cursor !== from) return startName ? [startName] : [];
+  nodes.push(from);
+  nodes.reverse();
+  const names: string[] = [];
+  for (let i = 1; i < nodes.length; i += 1) {
+    const name = graph.edges[nodes[i - 1]]?.find((edge) => edge.to === nodes[i])?.name;
+    if (name && names[names.length - 1] !== name) names.push(name);
+  }
+  if (startName && names[0] !== startName) names.unshift(startName);
+  return names;
 }
 
 function distanceToLine(lat: number, lng: number, points: [number, number][]): number {
