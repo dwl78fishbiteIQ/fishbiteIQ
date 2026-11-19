@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { AlertTriangle } from "lucide-react";
 import { addPlaceLabels } from "@/lib/fishing/map-labels";
+import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { spotById } from "@/lib/fishing/spots";
 import type { Advice } from "@/lib/fishing/types";
 import { cn } from "@/lib/cn";
@@ -168,6 +169,7 @@ export function AdviceCard({
 function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string }) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
+  const [locked, setLocked] = useState(true);
 
   useEffect(() => {
     const el = host.current;
@@ -182,6 +184,9 @@ function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string })
         scrollWheelZoom: false,
         dragging: false,
         doubleClickZoom: false,
+        touchZoom: false,
+        boxZoom: false,
+        keyboard: false,
       });
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -192,6 +197,7 @@ function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string })
         { maxZoom: 19 },
       ).addTo(map);
       map.setView([lat, lng], 13);
+      freezeMap(map);
       addPlaceLabels(L, map);
       L.circleMarker([lat, lng], {
         radius: 8,
@@ -212,7 +218,16 @@ function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string })
 
   return (
     <div className="mt-2">
-      <div ref={host} className="pick-map" role="img" aria-label={`Map of ${name}`} />
+      <MapLock
+        locked={locked}
+        onExplore={() => {
+          const map = mapRef.current;
+          if (map) thawMap(map);
+          setLocked(false);
+        }}
+      >
+        <div ref={host} className="pick-map" role="img" aria-label={`Map of ${name}`} />
+      </MapLock>
       <p className="mt-1 text-xs text-muted">© OpenStreetMap, CARTO</p>
     </div>
   );

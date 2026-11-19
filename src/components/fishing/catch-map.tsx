@@ -9,6 +9,7 @@ import type { CatchRow, Species } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
 import { addPlaceLabels } from "@/lib/fishing/map-labels";
 import { nearestWaypoint, type Waypoint } from "@/lib/fishing/waypoints";
+import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { cn } from "@/lib/cn";
 
 export function CatchMap({
@@ -42,6 +43,7 @@ export function CatchMap({
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [name, setName] = useState("");
   const [heat, setHeat] = useState(false);
+  const [locked, setLocked] = useState(true);
   const heatCanvas = useRef<HTMLCanvasElement | null>(null);
   const compactRef = useRef(compact);
   compactRef.current = compact;
@@ -59,7 +61,16 @@ export function CatchMap({
     void import("leaflet").then((mod) => {
       if (dead || mapRef.current) return;
       const L = mod.default ?? mod;
-      const map = L.map(el, { zoomControl: true, attributionControl: true });
+      const map = L.map(el, {
+        zoomControl: true,
+        attributionControl: true,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      });
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
@@ -72,6 +83,7 @@ export function CatchMap({
         { maxZoom: 19 },
       ).addTo(map);
       map.setView([32.78, -79.88], 11);
+      freezeMap(map);
       addPlaceLabels(L, map);
       map.on("click", (event) => clickRef.current(event.latlng.lat, event.latlng.lng));
       mapRef.current = map;
@@ -157,11 +169,11 @@ export function CatchMap({
         ...waypoints.map((mark) => [mark.lat, mark.lng] as [number, number]),
       ];
       const key = `${pins.map((pin) => pin.id).join("|")}#${waypoints.map((mark) => mark.id).join("|")}`;
-      if (spots.length && fitted.current !== key) {
+      if (!locked && spots.length && fitted.current !== key) {
         fitted.current = key;
         map.fitBounds(L.latLngBounds(spots), { padding: [36, 36], maxZoom: 13 });
       }
-      if (!spots.length) {
+      if (!locked && !spots.length) {
         fitted.current = "";
         map.setView([32.78, -79.88], 11);
       }
@@ -169,7 +181,7 @@ export function CatchMap({
     return () => {
       dead = true;
     };
-  }, [pins, waypoints, selected?.id, ready, onOpenTrip, heat]);
+  }, [pins, waypoints, selected?.id, ready, onOpenTrip, heat, locked]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -346,12 +358,21 @@ export function CatchMap({
       )}
 
       <div className="overflow-hidden rounded-xl border border-border">
-        <div
-          ref={host}
-          className={compact ? "catch-map is-compact" : "catch-map"}
-          role="application"
-          aria-label="Map of catches"
-        />
+        <MapLock
+          locked={locked}
+          onExplore={() => {
+            const map = mapRef.current;
+            if (map) thawMap(map);
+            setLocked(false);
+          }}
+        >
+          <div
+            ref={host}
+            className={compact ? "catch-map is-compact" : "catch-map"}
+            role="application"
+            aria-label="Map of catches"
+          />
+        </MapLock>
       </div>
     </div>
   );

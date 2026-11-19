@@ -3,6 +3,7 @@ import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { LoaderCircle } from "lucide-react";
 import { BaitPicker } from "@/components/fishing/bait-picker";
+import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { suggestedFilename } from "@/lib/fishing/advisor";
 import { addPlaceLabels } from "@/lib/fishing/map-labels";
 import { liveConditions, livePhotoWeather, liveReadPhoto } from "@/lib/fishing/live";
@@ -474,6 +475,7 @@ function PhoneSettings() {
 function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
+  const [locked, setLocked] = useState(true);
 
   useEffect(() => {
     const el = host.current;
@@ -482,7 +484,17 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
     void import("leaflet").then((mod) => {
       if (dead || mapRef.current) return;
       const L = mod.default ?? mod;
-      const map = L.map(el, { zoomControl: true, attributionControl: true, zoomSnap: 0.1 });
+      const map = L.map(el, {
+        zoomControl: true,
+        attributionControl: true,
+        zoomSnap: 0.1,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      });
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
@@ -495,6 +507,7 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
         { maxZoom: 19 },
       ).addTo(map);
       map.setView([lat, lng], 14.6);
+      freezeMap(map);
       addPlaceLabels(L, map);
       L.circleMarker([lat, lng], {
         radius: 8,
@@ -513,7 +526,18 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
     };
   }, [lat, lng]);
 
-  return <div ref={host} className="catch-map h-64 min-h-64" role="application" aria-label="Where this photo was taken" />;
+  return (
+    <MapLock
+      locked={locked}
+      onExplore={() => {
+        const map = mapRef.current;
+        if (map) thawMap(map);
+        setLocked(false);
+      }}
+    >
+      <div ref={host} className="catch-map h-64 min-h-64" role="application" aria-label="Where this photo was taken" />
+    </MapLock>
+  );
 }
 
 function loggedSnap(
