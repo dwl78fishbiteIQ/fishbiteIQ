@@ -36,7 +36,7 @@ export function MapLock({
     <div className="relative">
       {children}
       {locked ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center">
+        <div className="absolute inset-0 z-10 flex items-start justify-end p-2">
           <button
             type="button"
             onClick={onExplore}
