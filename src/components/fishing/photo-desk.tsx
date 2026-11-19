@@ -496,7 +496,13 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
       ).addTo(map);
       map.setView([lat, lng], 14.6);
       addPlaceLabels(L, map);
-      L.circleMarker([lat, lng], { radius: 8, color: "#1c3d36", weight: 2, fillOpacity: 0.9 }).addTo(map);
+      L.circleMarker([lat, lng], {
+        radius: 8,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: "#e10600",
+        fillOpacity: 1,
+      }).addTo(map);
       mapRef.current = map;
       requestAnimationFrame(() => map.invalidateSize());
     });
