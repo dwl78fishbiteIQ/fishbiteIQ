@@ -1,4 +1,5 @@
 import { AmpText } from "@/components/fishing/amp-text";
+import { PUBLIC_MARKS, PUBLIC_MARK_SOURCES } from "@/lib/fishing/public-structure";
 import { describePlace } from "@/lib/fishing/waters";
 import type { Waypoint } from "@/lib/fishing/waypoints";
 import { SPOTS } from "@/lib/fishing/spots";
@@ -98,6 +99,32 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
           </li>
         ))}
       </ul>
+      </section>
+      <section className="space-y-3">
+        <h3 className="text-xl text-fg">Public flats and structure</h3>
+        <p className="max-w-2xl text-sm text-muted">
+          Inshore oyster flats and the near-inlet public reefs within 50 miles of Charleston Harbor.
+          Tan dots are flats. Copper dots are reefs. Names show when the map is inside one mile.
+        </p>
+        <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
+          {PUBLIC_MARKS.map((mark) => (
+            <li key={mark.id} className="space-y-1 px-4 py-3">
+              <p className="text-fg">{mark.name}</p>
+              <p className="text-sm text-muted">{mark.note}</p>
+              <p className="text-xs text-muted tabular-nums">
+                {mark.lat.toFixed(5)}, {mark.lng.toFixed(5)}
+              </p>
+              <LandingRoute lat={mark.lat} lng={mark.lng} />
+            </li>
+          ))}
+        </ul>
+        <p className="text-sm text-muted">
+          {PUBLIC_MARK_SOURCES.map((source) => (
+            <a key={source.href} className="mr-4 text-accent underline" href={source.href} target="_blank" rel="noreferrer">
+              {source.label}
+            </a>
+          ))}
+        </p>
       </section>
     </div>
   );
