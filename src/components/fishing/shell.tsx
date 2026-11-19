@@ -397,7 +397,11 @@ function NavButton({
         className,
       )}
     >
-      <Icon className={cn("size-4 shrink-0", menu && "mt-0.5")} aria-hidden="true" />
+      {item.id === "limits" ? (
+        <img src="/logos/scdnr-seal-color.png" alt="" className={cn("size-8 shrink-0", menu && "mt-0.5")} />
+      ) : (
+        <Icon className={cn("size-4 shrink-0", menu && "mt-0.5")} aria-hidden="true" />
+      )}
       <AmpText text={item.label} className={menu ? "min-w-0 flex-1 leading-snug" : undefined} />
     </button>
   );
