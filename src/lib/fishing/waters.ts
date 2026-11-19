@@ -107,13 +107,143 @@ function nearestWaterway(lat: number, lng: number): { name: string; miles: numbe
   return best;
 }
 
+/** Short channel links where two plotted waterways meet but the lines do not touch. These follow the water, not a shortcut across land. */
+const CONNECTORS: Waterway[] = [
+  { name: "Charleston Harbor", points: [[32.7886, -79.8665], [32.778, -79.872], [32.756, -79.87]] },
+  { name: "Charleston Harbor", points: [[32.775, -79.92], [32.783, -79.923], [32.79, -79.925]] },
+  { name: "Charleston Harbor", points: [[32.77, -79.9], [32.785, -79.9], [32.8, -79.9]] },
+  { name: "Charleston Harbor", points: [[32.77, -79.9], [32.774, -79.928], [32.778, -79.955]] },
+  { name: "Ashley River", points: [[32.778, -79.955], [32.773, -79.958], [32.769, -79.96]] },
+  { name: "Elliott Cut", points: [[32.766, -79.985], [32.768, -79.985]] },
+  { name: "Stono River", points: [[32.766, -80.005], [32.758, -80.003], [32.75, -80.0]] },
+  { name: "Charleston Harbor", points: [[32.7834, -79.8612], [32.774, -79.86], [32.756, -79.87]] },
+  { name: "Wando River", points: [[32.815, -79.87], [32.814, -79.89], [32.8135, -79.908]] },
+  { name: "Intracoastal Waterway", points: [[32.87, -79.73], [32.885, -79.715], [32.9, -79.7]] },
+  { name: "Charleston Harbor", points: [[32.7775, -79.815], [32.78, -79.838], [32.7834, -79.8612]] },
+];
+
+type Pt = [number, number];
+type Segment = { name: string; a: Pt; b: Pt; aId: number; bId: number };
+type Graph = {
+  edges: { to: number; miles: number }[][];
+  segments: Segment[];
+  landings: { name: string; lat: number; lng: number; node: number; off: number; seg: number; point: Pt }[];
+};
+
+let routeGraph: Graph | null = null;
+
 function nearestLanding(lat: number, lng: number): { name: string; miles: number; lat: number; lng: number } {
+  const graph = waterGraph();
+  const snap = nearestSegment(lat, lng, graph.segments, 4);
+  if (!snap) return straightLanding(lat, lng);
+  const fromA = routeMiles(graph, snap.seg.aId);
+  const fromB = routeMiles(graph, snap.seg.bId);
+  let best: { name: string; miles: number; lat: number; lng: number } | null = null;
+  for (const landing of graph.landings) {
+    const alongEnds = Math.min(snap.toA + fromA[landing.node], snap.toB + fromB[landing.node]);
+    const alongSame = snap.seg === graph.segments[landing.seg] ? milesBetween(snap.point[0], snap.point[1], landing.point[0], landing.point[1]) : Infinity;
+    const miles = snap.miles + landing.off + Math.min(alongEnds, alongSame);
+    if (!Number.isFinite(miles)) continue;
+    if (!best || miles < best.miles) best = { name: landing.name, miles, lat: landing.lat, lng: landing.lng };
+  }
+  return best ?? straightLanding(lat, lng);
+}
+
+function straightLanding(lat: number, lng: number): { name: string; miles: number; lat: number; lng: number } {
   let best = { name: LANDINGS[0].name, miles: Infinity, lat: LANDINGS[0].lat, lng: LANDINGS[0].lng };
   for (const landing of LANDINGS) {
     const miles = milesBetween(lat, lng, landing.lat, landing.lng);
     if (miles < best.miles) best = { name: landing.name, miles, lat: landing.lat, lng: landing.lng };
   }
   return best;
+}
+
+function waterGraph(): Graph {
+  if (routeGraph) return routeGraph;
+  const nodes: Pt[] = [];
+  const keyToId = new Map<string, number>();
+  const edges: { to: number; miles: number }[][] = [];
+  const idOf = (point: Pt) => {
+    const key = `${point[0].toFixed(4)},${point[1].toFixed(4)}`;
+    const found = keyToId.get(key);
+    if (found != null) return found;
+    const id = nodes.length;
+    nodes.push(point);
+    keyToId.set(key, id);
+    edges[id] = [];
+    return id;
+  };
+  const link = (a: number, b: number) => {
+    if (a === b) return;
+    const miles = milesBetween(nodes[a][0], nodes[a][1], nodes[b][0], nodes[b][1]);
+    edges[a].push({ to: b, miles });
+    edges[b].push({ to: a, miles });
+  };
+  const segments: Segment[] = [];
+  for (const route of [...WATERWAYS, ...CONNECTORS]) {
+    let previous = idOf(route.points[0]);
+    for (let i = 1; i < route.points.length; i += 1) {
+      const next = idOf(route.points[i]);
+      link(previous, next);
+      segments.push({ name: route.name, a: nodes[previous], b: nodes[next], aId: previous, bId: next });
+      previous = next;
+    }
+  }
+  const landings = LANDINGS.flatMap((landing) => {
+    const named = segments.filter((segment) => segment.name === landing.waterway);
+    const onName = nearestSegment(landing.lat, landing.lng, named, 5);
+    const snap = onName ?? nearestSegment(landing.lat, landing.lng, segments, 3);
+    if (!snap) return [];
+    const node = idOf(snap.point);
+    link(node, snap.seg.aId);
+    link(node, snap.seg.bId);
+    return [{ name: landing.name, lat: landing.lat, lng: landing.lng, node, off: snap.miles, seg: segments.indexOf(snap.seg), point: snap.point }];
+  });
+  routeGraph = { edges, segments, landings };
+  return routeGraph;
+}
+
+function nearestSegment(lat: number, lng: number, segments: Segment[], maxMiles: number) {
+  let best: { seg: Segment; point: Pt; miles: number; toA: number; toB: number } | null = null;
+  for (const seg of segments) {
+    const hit = projectToSegment(lat, lng, seg.a, seg.b);
+    if (hit.miles > maxMiles) continue;
+    if (!best || hit.miles < best.miles) best = { seg, ...hit };
+  }
+  return best;
+}
+
+function projectToSegment(lat: number, lng: number, a: Pt, b: Pt) {
+  const abLat = b[0] - a[0];
+  const abLng = b[1] - a[1];
+  const length = abLat * abLat + abLng * abLng;
+  const t = length === 0 ? 0 : Math.min(1, Math.max(0, ((lat - a[0]) * abLat + (lng - a[1]) * abLng) / length));
+  const point: Pt = [a[0] + t * abLat, a[1] + t * abLng];
+  return {
+    point,
+    miles: milesBetween(lat, lng, point[0], point[1]),
+    toA: milesBetween(point[0], point[1], a[0], a[1]),
+    toB: milesBetween(point[0], point[1], b[0], b[1]),
+  };
+}
+
+function routeMiles(graph: Graph, start: number): number[] {
+  const dist = Array(graph.edges.length).fill(Infinity);
+  const used = Array(graph.edges.length).fill(false);
+  dist[start] = 0;
+  for (let step = 0; step < dist.length; step += 1) {
+    let node = -1;
+    for (let i = 0; i < dist.length; i += 1) {
+      if (!used[i] && (node < 0 || dist[i] < dist[node])) node = i;
+    }
+    if (node < 0 || dist[node] === Infinity) break;
+    used[node] = true;
+    for (const edge of graph.edges[node] ?? []) {
+      const next = dist[node] + edge.miles;
+      if (next < dist[edge.to]) dist[edge.to] = next;
+    }
+  }
+  return dist;
 }
 
 function distanceToLine(lat: number, lng: number, points: [number, number][]): number {

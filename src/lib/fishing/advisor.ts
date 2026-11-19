@@ -666,7 +666,7 @@ function answerFromLog(
     const place = top.lat != null ? describePlace(top.lat, top.lng) : null;
     sentences.push(
       place
-        ? `Best supported place is ${top.name} on ${place.waterway}. Closest public landing is ${place.landing}, ${place.landingMiles.toFixed(1)} miles.`
+        ? `Best supported place is ${top.name} on ${place.waterway}. Closest public landing is ${place.landing}, ${place.landingMiles.toFixed(1)} miles by water.`
         : `Best supported place is ${top.name}.`,
     );
   }
@@ -724,7 +724,7 @@ function answerFromLog(
       lat: cluster.lat,
       lng: cluster.lng,
       waterway: place.waterway,
-      landing: `${place.landing} · ${place.landingMiles.toFixed(1)} mi`,
+      landing: `${place.landing} · ${place.landingMiles.toFixed(1)} mi by water`,
       landingLat: place.landingLat,
       landingLng: place.landingLng,
       why,

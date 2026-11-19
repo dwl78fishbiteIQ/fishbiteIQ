@@ -27,7 +27,7 @@ export function SpotGuide({ waypoints = [] }: { waypoints?: Waypoint[] }) {
                     Named from a photo. Catches logged here are used in When & Where.
                   </p>
                   <p className="mt-2 text-sm text-muted">
-                    Closest public landing · {place.landing}, {place.landingMiles.toFixed(1)} mi
+                    Closest public landing · {place.landing}, {place.landingMiles.toFixed(1)} mi by water
                     {place.landingLat != null ? (
                       <>
                         {" · "}
