@@ -105,6 +105,7 @@ export function AdviseView({
   rowsRef.current = rows;
   const marksRef = useRef(waypoints);
   marksRef.current = waypoints;
+  const heardRef = useRef("");
 
   useEffect(() => {
     let cancelled = false;
@@ -274,6 +275,29 @@ export function AdviseView({
     }
   }
 
+  function rememberQuery(text: string) {
+    heardRef.current = text;
+    setPlan(text);
+  }
+
+  function spokenQuery(said: string): string {
+    const after = queryAfterWake(said);
+    if (after != null) return after;
+    return said.replace(/hey\s+fish\s*bite(?:\s+i\s*\.?\s*q)?[\s,.:;-]*/i, "").trim();
+  }
+
+  function stopAndSearch() {
+    const text = heardRef.current.trim();
+    stopVoice();
+    if (text.length < 3) {
+      setVoiceNote("Nothing to search yet. Say the question, then tap Stop listening.");
+      return;
+    }
+    setVoiceNote(null);
+    void submit(text, whenQuery(text, today));
+    rememberQuery("");
+  }
+
   function startVoice() {
     const Ctor = speechCtor();
     if (!Ctor) {
@@ -283,28 +307,21 @@ export function AdviseView({
     stopVoice();
     const rec = new Ctor();
     rec.continuous = true;
-    rec.interimResults = false;
+    rec.interimResults = true;
     rec.lang = "en-US";
     recRef.current = rec;
     hearingRef.current = true;
     setHearing(true);
-    setVoiceNote('Listening. Say "Hey FishbiteIQ . . ." then the question.');
+    setVoiceNote("Listening… tap Stop listening to search.");
+    let prefix = "";
     rec.onresult = (event) => {
       let said = "";
       for (let i = 0; i < event.results.length; i += 1) {
-        if (!event.results[i].isFinal) continue;
         said += event.results[i][0]?.transcript ?? "";
       }
-      const question = queryAfterWake(said);
-      if (question == null) return;
-      if (question.length < 3) {
-        setVoiceNote("Go ahead.");
-        return;
-      }
-      setVoiceNote(`Heard: ${question}`);
-      setPlan("");
-      stopVoice();
-      void submit(question, whenQuery(question, today));
+      const question = spokenQuery(said);
+      if (!question) return;
+      rememberQuery(`${prefix} ${question}`.trim());
     };
     rec.onerror = (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
@@ -313,6 +330,7 @@ export function AdviseView({
       }
     };
     rec.onend = () => {
+      prefix = heardRef.current;
       if (!hearingRef.current || recRef.current !== rec) return;
       window.setTimeout(() => {
         if (!hearingRef.current || recRef.current !== rec) return;
@@ -343,15 +361,15 @@ export function AdviseView({
           <input
             id={screen === "home" ? "plan-home" : "plan"}
             value={plan}
-            onChange={(e) => setPlan(e.target.value)}
+            onChange={(e) => rememberQuery(e.target.value)}
             placeholder="Best time and place Saturday for redfish?"
             className="h-11 w-full rounded-lg border border-border bg-bg py-0 pr-28 pl-11 text-base text-fg"
           />
           <button
             type="button"
-            aria-label={hearing ? "Stop the microphone" : "Ask with the microphone"}
+            aria-label={hearing ? "Stop listening and search" : "Ask with the microphone"}
             aria-pressed={hearing}
-            onClick={hearing ? stopVoice : startDictation}
+            onClick={hearing ? stopAndSearch : startVoice}
             className="absolute top-1/2 left-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-accent"
           >
             <Mic className="size-5" aria-hidden="true" />
@@ -367,7 +385,7 @@ export function AdviseView({
           <div className="mt-3">
             <button
               type="button"
-              onClick={hearing ? stopVoice : startVoice}
+              onClick={hearing ? stopAndSearch : startVoice}
               className="inline-flex h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm font-semibold text-fg"
             >
               {hearing ? (
