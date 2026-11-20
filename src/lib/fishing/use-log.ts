@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { readBackup } from "@/lib/fishing/backup";
 import { clearPhotos, deletePhoto, savePhoto } from "@/lib/fishing/photos";
 import { SEED } from "@/lib/fishing/seed";
+import { SAMPLE_WAYPOINTS } from "@/lib/fishing/sample-waypoints";
 import type { CatchRow } from "@/lib/fishing/types";
 
 const KEY = "lfa-catch-log-v1";
 const SAMPLE_KEY = "lfa-catch-sample-v1";
-const SAMPLE_VERSION = "wayne-sample-2";
+const SAMPLE_VERSION = "wayne-sample-3";
 const SAMPLE_VERSION_KEY = "lfa-sample-version";
+const WAYPOINT_KEY = "lfa-waypoints-v1";
 
 function isRow(value: unknown): value is CatchRow {
   if (!value || typeof value !== "object") return false;
@@ -24,14 +26,19 @@ export function useCatchLog() {
       const raw = localStorage.getItem(KEY);
       const parsed = raw ? parseRows(raw) : null;
       const seedIds = new Set(SEED.map((row) => row.id));
-      const cleaned = parsed?.filter((row) => row.source !== "sample" || seedIds.has(row.id)) ?? null;
-      const removed = parsed?.filter((row) => row.source === "sample" && !seedIds.has(row.id)) ?? [];
-      for (const row of removed) void deletePhoto(row.id).catch(() => undefined);
-      const userRows = (cleaned ?? []).filter((row) => row.source !== "sample");
-      const storedSample = (cleaned ?? []).filter((row) => row.source === "sample");
-      const sample = storedSample.length === SEED.length ? storedSample : SEED;
-      const seen = new Set(sample.map((row) => row.id));
-      setRows([...sample, ...userRows.filter((row) => !seen.has(row.id))]);
+      const replaceSample = localStorage.getItem(SAMPLE_VERSION_KEY) !== SAMPLE_VERSION;
+      const previous = parsed ?? [];
+      for (const row of previous) {
+        if (row.source === "sample" && !seedIds.has(row.id)) void deletePhoto(row.id).catch(() => undefined);
+      }
+      const userRows = previous.filter((row) => row.source !== "sample" && !seedIds.has(row.id));
+      const storedSample = previous.filter((row) => row.source === "sample" && seedIds.has(row.id));
+      const sample = replaceSample || storedSample.length !== SEED.length ? SEED : storedSample;
+      setRows([...sample, ...userRows]);
+      if (replaceSample) {
+        localStorage.setItem(WAYPOINT_KEY, JSON.stringify(SAMPLE_WAYPOINTS));
+        window.dispatchEvent(new CustomEvent("lfa-waypoints"));
+      }
       localStorage.removeItem(SAMPLE_KEY);
       localStorage.setItem(SAMPLE_VERSION_KEY, SAMPLE_VERSION);
       void installSamplePhotos();

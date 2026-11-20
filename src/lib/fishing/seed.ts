@@ -24,7 +24,8 @@ export const SEED: CatchRow[] = [
     "notes": "Angler holding a fish aboard a small boat on calm gray-green inshore water with marsh grass and tree-lined shoreline under overcast light. Cooler and gear visible in the boat.",
     "source": "sample",
     "lat": 32.92649722222222,
-    "lng": -79.78195833333334
+    "lng": -79.78195833333334,
+    "spotName": "Wando - Toomer Creek mouth"
   },
   {
     "id": "roll-1795146482299-22",
@@ -48,7 +49,8 @@ export const SEED: CatchRow[] = [
     "notes": "Angler standing in a small open boat beside wooden dock pilings and a marsh-grass shoreline. Calm dark water under bright midday sun; Yamaha outboard and bait bucket visible on deck.",
     "source": "sample",
     "lat": 32.92094722222222,
-    "lng": -79.73484722222223
+    "lng": -79.73484722222223,
+    "spotName": ""
   },
   {
     "id": "roll-1795146482501-58",
@@ -216,7 +218,8 @@ export const SEED: CatchRow[] = [
     "notes": "Calm inshore marsh creek with green spartina banks and open blue water under bright sun. Boat deck with a red bait bucket visible; no birds or obvious current lines.",
     "source": "sample",
     "lat": 32.88945833333333,
-    "lng": -79.87735833333333
+    "lng": -79.87735833333333,
+    "spotName": "Beresford Creek Tressel"
   },
   {
     "id": "roll-1795146483729-28",
@@ -472,7 +475,7 @@ export const SEED: CatchRow[] = [
     "windDir": "",
     "windMph": null,
     "bait": "N/A",
-    "species": "Sheepshead",
+    "species": "Black Drum",
     "count": 1,
     "lengthIn": 18,
     "weightLb": null,
@@ -480,7 +483,8 @@ export const SEED: CatchRow[] = [
     "notes": "Angler holds the fish aboard a small boat beside weathered wooden pier pilings and a raised dock over calm brownish inshore water with marsh grass and a sandy bank under bright sun.",
     "source": "sample",
     "lat": 32.91962777777778,
-    "lng": -79.77001944444444
+    "lng": -79.77001944444444,
+    "spotName": ""
   },
   {
     "id": "roll-1795146485990-72",
@@ -520,7 +524,7 @@ export const SEED: CatchRow[] = [
     "windDir": "",
     "windMph": null,
     "bait": "N/A",
-    "species": "Sheepshead",
+    "species": "Black Drum",
     "count": 1,
     "lengthIn": 17,
     "weightLb": null,
@@ -528,7 +532,8 @@ export const SEED: CatchRow[] = [
     "notes": "Angler aboard a small boat beside weathered wooden pier pilings coated in barnacles. Overcast light on calm, tannin-stained water with distant marsh shoreline.",
     "source": "sample",
     "lat": 32.91936944444444,
-    "lng": -79.76986111111111
+    "lng": -79.76986111111111,
+    "spotName": ""
   },
   {
     "id": "roll-1795146486176-43",
@@ -552,7 +557,8 @@ export const SEED: CatchRow[] = [
     "notes": "Overcast light on calm, slightly murky inshore water with marsh shoreline and distant trees visible from a small boat deck.",
     "source": "sample",
     "lat": 32.919533333333334,
-    "lng": -79.76996666666666
+    "lng": -79.76996666666666,
+    "spotName": "Wando - Triple Dock"
   },
   {
     "id": "roll-1795146486390-3",
@@ -600,7 +606,8 @@ export const SEED: CatchRow[] = [
     "notes": "Inshore boat on calm greenish-brown water with a wooden pier and elevated structure on pilings in the background under bright sun and scattered clouds. Marsh shoreline visible in the distance.",
     "source": "sample",
     "lat": 32.961986111111116,
-    "lng": -79.63778611111111
+    "lng": -79.63778611111111,
+    "spotName": "Intracoastal - Dock 1"
   },
   {
     "id": "roll-1795146486798-27",
@@ -672,7 +679,8 @@ export const SEED: CatchRow[] = [
     "notes": "Selfie over calm inshore water beside wooden pier pilings and a covered dock structure under partly cloudy bright sky; marsh grass visible in the distance.",
     "source": "sample",
     "lat": 32.92103611111111,
-    "lng": -79.73368888888889
+    "lng": -79.73368888888889,
+    "spotName": "Paradise Island - N - Toilet Docks"
   },
   {
     "id": "roll-1795146487415-80",
@@ -696,7 +704,8 @@ export const SEED: CatchRow[] = [
     "notes": "Shallow tan-brown inshore water with marsh grass and wooden docks or piers in the background under bright midday sun. Angler holds the fish aboard a small boat with a Yamaha outboard.",
     "source": "sample",
     "lat": 32.92368611111111,
-    "lng": -79.72163333333333
+    "lng": -79.72163333333333,
+    "spotName": "Paradise Island - N - Almost to Kent's"
   },
   {
     "id": "roll-1795146487773-63",
@@ -768,7 +777,8 @@ export const SEED: CatchRow[] = [
     "notes": "Calm tannin-stained marsh creek with grassy banks and overcast sky. Child in life vest on a small boat holding the fish with a lip gripper; no bait or birds visible.",
     "source": "sample",
     "lat": 32.920313888888884,
-    "lng": -79.93443888888889
+    "lng": -79.93443888888889,
+    "spotName": "Bushy Park - Hiding Spot"
   },
   {
     "id": "roll-1795146488029-74",
@@ -840,7 +850,8 @@ export const SEED: CatchRow[] = [
     "notes": "Held aboard a small boat on calm gray-green inshore water under heavy overcast skies. Distant shoreline and industrial structures visible across the open water; fishing rods and a bait box are on the boat.",
     "source": "sample",
     "lat": 32.916780555555555,
-    "lng": -79.95500277777778
+    "lng": -79.95500277777778,
+    "spotName": "Goose Creek Honey Hole"
   },
   {
     "id": "roll-1795146488418-2",
@@ -858,12 +869,13 @@ export const SEED: CatchRow[] = [
     "bait": "N/A",
     "species": "Red Drum",
     "count": 1,
-    "lengthIn": 24,
+    "lengthIn": 14,
     "weightLb": null,
     "photoFilename": "IMG_0280",
     "notes": "Angler aboard a small boat on calm, greenish inshore water bordered by dense marsh grass and distant elevated houses under bright clear sky.",
     "source": "sample",
     "lat": 32.89998055555556,
-    "lng": -79.68494444444445
+    "lng": -79.68494444444445,
+    "spotName": "Claussen Creek Bend - Garris Landing"
   }
 ] as CatchRow[];
