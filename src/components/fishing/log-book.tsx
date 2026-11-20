@@ -515,7 +515,6 @@ export function LogBook({
                 {row.waterTempF != null ? ` · ${row.waterTempF}°F water` : ""}
                 {row.windDir ? ` · ${row.windDir} ${row.windMph ?? ""} mph` : ""} · {moon.name}
               </p>
-              {row.notes ? <p className="mt-1 text-sm text-muted">{row.notes}</p> : null}
               {row.lat != null && row.lng != null ? (
                 <p className="mt-1 text-xs text-muted tabular-nums">
                   Photo GPS {row.lat.toFixed(5)}, {row.lng.toFixed(5)}
