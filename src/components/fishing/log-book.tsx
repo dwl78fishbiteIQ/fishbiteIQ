@@ -535,15 +535,21 @@ export function LogBook({
                   {openId === row.id ? "Hide photo and data" : "Photo and data"}
                 </button>
                 <button
-                  type="button"
-                  className="inline-flex h-11 items-center gap-1 rounded-md border border-accent bg-surface px-3 text-sm text-accent"
+                  type={editId === row.id ? "submit" : "button"}
+                  form={editId === row.id ? `catch-edit-${row.id}` : undefined}
+                  className={
+                    editId === row.id
+                      ? "inline-flex h-11 items-center rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white"
+                      : "inline-flex h-11 items-center gap-1 rounded-md border border-accent bg-surface px-3 text-sm text-accent"
+                  }
                   onClick={() => {
+                    if (editId === row.id) return;
                     setDeleteId(null);
-                    setEditId((current) => (current === row.id ? null : row.id));
+                    setEditId(row.id);
                   }}
                 >
-                  <Pencil className="size-3.5" aria-hidden="true" />
-                  {editId === row.id ? "Close edit" : "Edit"}
+                  {editId === row.id ? null : <Pencil className="size-3.5" aria-hidden="true" />}
+                  {editId === row.id ? "Save" : "Edit"}
                 </button>
                 <button
                   type="button"
@@ -767,6 +773,7 @@ function CatchEditor({
 
   return (
     <form
+      id={`catch-edit-${row.id}`}
       className="mt-3 space-y-3 rounded-lg border border-border bg-bg p-3"
       onSubmit={(event) => {
         event.preventDefault();
