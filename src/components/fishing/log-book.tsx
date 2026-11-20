@@ -491,6 +491,9 @@ export function LogBook({
                   Back to map
                 </button>
               ) : null}
+              <div className="flex gap-3">
+                <CatchThumb id={row.id} />
+                <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-medium text-fg tabular-nums">
                   {formatPrettyDate(row.date)}
@@ -561,6 +564,8 @@ export function LogBook({
                   <Trash2 className="size-3.5" aria-hidden="true" />
                   Delete
                 </button>
+              </div>
+                </div>
               </div>
               {deleteId === row.id ? (
                 <div className="mt-3 rounded-lg border border-border bg-bg p-3">
@@ -633,6 +638,32 @@ export function LogBook({
         <p className="text-sm text-muted">No trips match that filter.</p>
       ) : null}
         </>
+      )}
+    </div>
+  );
+}
+
+function CatchThumb({ id }: { id: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let dead = false;
+    void loadPhoto(id)
+      .then((photo) => {
+        if (!dead) setSrc(photo);
+      })
+      .catch(() => {
+        if (!dead) setSrc(null);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [id]);
+  return (
+    <div className="h-24 w-20 shrink-0 overflow-hidden rounded-md border border-border bg-bg">
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-muted">No photo</div>
       )}
     </div>
   );
