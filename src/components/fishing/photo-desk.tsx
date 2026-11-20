@@ -12,6 +12,7 @@ import { meteoLines, type ModelRead } from "@/lib/fishing/photo-weather";
 import { shrinkPhoto } from "@/lib/fishing/import-log";
 import { captureStamp, readPhotoMeta, type PhotoMeta } from "@/lib/fishing/photo-meta";
 import { savePhoto } from "@/lib/fishing/photos";
+import { spotsWithinFeet } from "@/lib/fishing/spots";
 import { hoursAfterTurn, stageFromStation, tidePhrase } from "@/lib/fishing/station";
 import { clockToMinutes, todayInCharleston } from "@/lib/fishing/time";
 import type { CatchRow, MeteoSnap, PhotoRead, Species, TideStage, WindDir } from "@/lib/fishing/types";
@@ -80,6 +81,8 @@ export function PhotoDesk({
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [spotName, setSpotName] = useState("");
+  const [spotId, setSpotId] = useState("");
+  const [spotChoice, setSpotChoice] = useState("other");
   const spotEdited = useRef(false);
   const [place, setPlace] = useState<PlaceRead | null>(null);
   const [, setModels] = useState<ModelRead[]>([]);
@@ -200,14 +203,37 @@ export function PhotoDesk({
 
   useEffect(() => {
     if (spotEdited.current || lat == null || lng == null) return;
-    const near = nearestWaypoint(lat, lng, waypoints, 0.4);
-    if (near) setSpotName(near.name);
+    const near = spotsWithinFeet(lat, lng, waypoints);
+    const closest = near[0];
+    if (!closest) {
+      setSpotChoice("other");
+      setSpotId("");
+      return;
+    }
+    setSpotName(closest.name);
+    setSpotId(closest.kind === "guide" ? closest.id : "");
+    setSpotChoice(closest.key);
   }, [lat, lng, waypoints]);
+
+  const nearby = lat != null && lng != null ? spotsWithinFeet(lat, lng, waypoints) : [];
+
+  function pickSpot(key: string) {
+    spotEdited.current = true;
+    setSpotChoice(key);
+    if (key === "other") {
+      setSpotId("");
+      return;
+    }
+    const match = nearby.find((spot) => spot.key === key);
+    if (!match) return;
+    setSpotName(match.name);
+    setSpotId(match.kind === "guide" ? match.id : "");
+  }
 
   function save() {
     const lengthValue = Number(length);
     const namedSpot = spotName.trim();
-    if (namedSpot && lat != null && lng != null) {
+    if (spotChoice === "other" && namedSpot && lat != null && lng != null) {
       const near = nearestWaypoint(lat, lng, waypoints, 0.4);
       if (!near || near.name !== namedSpot) onSaveSpot?.(namedSpot, lat, lng);
     }
@@ -216,7 +242,7 @@ export function PhotoDesk({
       date,
       startTime: start,
       endTime: "",
-      spotId: "",
+      spotId,
       tideStage: tide,
       tideHours,
       tideTurn,
@@ -406,7 +432,23 @@ export function PhotoDesk({
           </div>
           {basis ? <p className="text-sm text-muted">Length basis: {basis}. Not a legal measurement.</p> : null}
           {place ? <p className="text-sm text-muted">{place.line}</p> : null}
-          {lat != null && lng != null ? (
+          {nearby.length ? (
+            <label className="text-sm text-muted">
+              Spot
+              <select className={field} value={spotChoice} onChange={(event) => pickSpot(event.target.value)}>
+                {nearby.map((spot) => (
+                  <option key={spot.key} value={spot.key}>
+                    {spot.name} · {spot.feet} ft · {spot.kind === "user" ? "Your spot" : "Public"}
+                  </option>
+                ))}
+                <option value="other">Different spot</option>
+              </select>
+              <span className="mt-1 block text-xs">
+                This photo is within 100 ft of a saved spot. Change it if that is not the place.
+              </span>
+            </label>
+          ) : null}
+          {lat != null && lng != null && spotChoice === "other" ? (
             <label className="text-sm text-muted">
               User Spot Name
               <input

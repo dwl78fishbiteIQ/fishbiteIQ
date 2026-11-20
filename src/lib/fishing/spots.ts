@@ -1,4 +1,5 @@
 import type { Area, Spot } from "@/lib/fishing/types";
+import { PUBLIC_MARKS } from "@/lib/fishing/public-structure";
 
 export const SPOTS: Spot[] = [
   {
@@ -122,6 +123,34 @@ export function milesBetween(lat1: number, lng1: number, lat2: number, lng2: num
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
   return 3958.7613 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export type NearbySpot = {
+  key: string;
+  id: string;
+  name: string;
+  kind: "guide" | "public" | "user";
+  feet: number;
+};
+
+/** Public guide spots, public flats and reefs, and saved user spots inside the distance. */
+export function spotsWithinFeet(
+  lat: number,
+  lng: number,
+  waypoints: { id: string; name: string; lat: number; lng: number }[],
+  feet = 100,
+): NearbySpot[] {
+  const limit = feet / 5280;
+  const found: NearbySpot[] = [];
+  const add = (id: string, name: string, kind: NearbySpot["kind"], spotLat: number, spotLng: number) => {
+    const miles = milesBetween(lat, lng, spotLat, spotLng);
+    if (miles > limit) return;
+    found.push({ key: `${kind}:${id}`, id, name, kind, feet: Math.max(1, Math.round(miles * 5280)) });
+  };
+  for (const spot of SPOTS) add(spot.id, spot.name, "guide", spot.lat, spot.lng);
+  for (const mark of PUBLIC_MARKS) add(mark.id, mark.name, "public", mark.lat, mark.lng);
+  for (const mark of waypoints) add(mark.id, mark.name, "user", mark.lat, mark.lng);
+  return found.sort((a, b) => a.feet - b.feet);
 }
 
 export type SpotFix = { spot: Spot; miles: number };
