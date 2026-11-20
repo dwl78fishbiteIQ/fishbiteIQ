@@ -671,7 +671,6 @@ function EstablishPage({
 }) {
   const rollInput = useRef<HTMLInputElement>(null);
   const albumInput = useRef<HTMLInputElement>(null);
-  const driveInput = useRef<HTMLInputElement>(null);
   const [albumOk, setAlbumOk] = useState(false);
   useEffect(() => {
     const ios =
@@ -718,18 +717,31 @@ function EstablishPage({
         >
           {scanning ? "Searching photos…" : "Search camera roll"}
         </button>
-        <button
-          type="button"
-          disabled={scanning}
-          onClick={() => driveInput.current?.click()}
-          className="h-11 rounded-lg border border-border px-4 text-sm font-semibold text-fg disabled:opacity-50"
+        <label
+          className={
+            scanning
+              ? "relative inline-flex h-11 cursor-not-allowed items-center rounded-lg border border-border px-4 text-sm font-semibold text-fg opacity-50"
+              : "relative inline-flex h-11 cursor-pointer items-center rounded-lg border border-border px-4 text-sm font-semibold text-fg"
+          }
         >
           {scanning ? "Searching photos…" : "Upload from OneDrive"}
-        </button>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={scanning}
+            className="absolute inset-0 cursor-pointer opacity-0"
+            onChange={(event) => {
+              const picked = Array.from(event.target.files ?? []);
+              event.target.value = "";
+              if (picked.length) onFiles(picked, "onedrive");
+            }}
+          />
+        </label>
       </div>
       <p className="text-sm text-muted">
-        Upload from OneDrive opens your files. Choose OneDrive, then the original photos. A shared link or a
-        preview usually drops the time and the location.
+        On an iPhone, tap Upload from OneDrive, then Browse, then OneDrive. On Android, tap it, then Files, then
+        OneDrive. Pick the original photos. A shared link or a preview usually drops the time and the location.
       </p>
       <input
         ref={albumInput}
@@ -752,18 +764,6 @@ function EstablishPage({
           const picked = Array.from(event.target.files ?? []);
           event.target.value = "";
           if (picked.length) onFiles(picked, "roll");
-        }}
-      />
-      <input
-        ref={driveInput}
-        type="file"
-        accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-        multiple
-        className="hidden"
-        onChange={(event) => {
-          const picked = Array.from(event.target.files ?? []);
-          event.target.value = "";
-          if (picked.length) onFiles(picked, "onedrive");
         }}
       />
       {note ? <p className="text-sm text-fg">{note}</p> : null}
