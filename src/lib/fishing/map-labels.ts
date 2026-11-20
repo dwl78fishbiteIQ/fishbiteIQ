@@ -8,7 +8,7 @@ const LANDING_ICON = `<svg class="landing-icon" viewBox="0 0 20 16" width="16" h
 
 const PUBLIC_ICON = `<svg class="spot-icon" viewBox="0 0 16 20" width="14" height="18" aria-hidden="true"><path fill="#e08a3c" stroke="#1a1208" stroke-width="1.2" d="M8 1.2a5.2 5.2 0 0 0-5.2 5.2c0 3.9 5.2 11.2 5.2 11.2s5.2-7.3 5.2-11.2A5.2 5.2 0 0 0 8 1.2Z"/><circle cx="8" cy="6.4" r="1.7" fill="#1a1208"/></svg>`;
 
-const USER_ICON = `<svg class="spot-icon" viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#f4e7c5" stroke="#1a1208" stroke-width="1.2" d="m9 1.4 2.1 4.4 4.8.6-3.5 3.3.9 4.8L9 12.2 4.7 14.5l.9-4.8L2.1 6.4l4.8-.6Z"/></svg>`;
+const USER_ICON = `<svg class="spot-icon" viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#ffe14a" stroke="#1a1208" stroke-width="1.2" d="m9 1.4 2.1 4.4 4.8.6-3.5 3.3.9 4.8L9 12.2 4.7 14.5l.9-4.8L2.1 6.4l4.8-.6Z"/></svg>`;
 
 type Leaflet = typeof import("leaflet");
 
