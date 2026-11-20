@@ -27,13 +27,14 @@ export function useCatchLog() {
       const cleaned = parsed?.filter((row) => row.source !== "sample" || seedIds.has(row.id)) ?? null;
       const removed = parsed?.filter((row) => row.source === "sample" && !seedIds.has(row.id)) ?? [];
       for (const row of removed) void deletePhoto(row.id).catch(() => undefined);
-      const hasUser = cleaned?.some((row) => row.source !== "sample") ?? false;
-      const hasBackup = cleaned?.some((row) => seedIds.has(row.id)) ?? false;
-      if (!cleaned || (!hasUser && !hasBackup)) setRows(SEED);
-      else setRows(cleaned);
+      const userRows = (cleaned ?? []).filter((row) => row.source !== "sample");
+      const storedSample = (cleaned ?? []).filter((row) => row.source === "sample");
+      const sample = storedSample.length === SEED.length ? storedSample : SEED;
+      const seen = new Set(sample.map((row) => row.id));
+      setRows([...sample, ...userRows.filter((row) => !seen.has(row.id))]);
       localStorage.removeItem(SAMPLE_KEY);
       localStorage.setItem(SAMPLE_VERSION_KEY, SAMPLE_VERSION);
-      if (!hasUser || hasBackup) void installSamplePhotos();
+      void installSamplePhotos();
     } catch {
       /* keep the sample book */
     }
