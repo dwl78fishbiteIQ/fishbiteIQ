@@ -80,7 +80,9 @@ function MapLegend() {
         Public Landing
       </li>
       <li className="flex items-center gap-1">
-        <span className="inline-block size-2.5 rounded-full border-2 border-white bg-[#f4e7c5]" />
+        <span className="inline-flex size-4 items-center justify-center rounded-full border-2 border-white bg-[#f4e7c5] text-[9px] leading-none font-extrabold text-black">
+          F
+        </span>
         DNR Flat
       </li>
       <li className="flex items-center gap-1">

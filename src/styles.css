@@ -139,7 +139,17 @@
 }
 
 .flat-label .mark-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   background: #f4e7c5;
+  color: #000;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .structure-label .mark-dot {

@@ -31,7 +31,9 @@ export function addPlaceLabels(L: Leaflet, map: LeafletMap, options?: { users?: 
     L.marker([mark.lat, mark.lng], {
       icon: L.divIcon({
         className: reef ? "leaflet-div-icon structure-label" : "leaflet-div-icon flat-label",
-        html: `<span class="mark-dot"></span><span>${escapeHtml(mark.name)}</span>`,
+        html: reef
+          ? `<span class="mark-dot"></span><span>${escapeHtml(mark.name)}</span>`
+          : `<span class="mark-dot">F</span><span>${escapeHtml(mark.name)}</span>`,
         iconSize: [170, 16],
         iconAnchor: [6, 8],
       }),
