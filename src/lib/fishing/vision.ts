@@ -90,7 +90,7 @@ async function callGrok(apiKey: string, body: unknown): Promise<Response> {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(45000),
   });
 }
 

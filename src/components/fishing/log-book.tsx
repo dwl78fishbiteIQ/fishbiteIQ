@@ -18,7 +18,7 @@ import type { Waypoint } from "@/lib/fishing/waypoints";
 import { LogFilterBar } from "@/components/fishing/log-filters";
 import { cn } from "@/lib/cn";
 
-type RollItemStatus = "waiting" | "checking" | "logged" | "missing" | "not-fish" | "unreadable" | "duplicate";
+type RollItemStatus = "waiting" | "checking" | "logged" | "missing" | "not-fish" | "unreadable" | "slow" | "duplicate";
 
 type RollItem = { name: string; status: RollItemStatus };
 
@@ -34,6 +34,15 @@ type RollStatus = {
 
 function photoName(file: File): string {
   return (file.name.split("/").pop() || "Photo").replace(/\.[^.]+$/, "");
+}
+
+async function readOne(preview: string) {
+  try {
+    return await liveReadPhoto(preview);
+  } catch (error) {
+    const text = error instanceof Error ? `${error.name} ${error.message}` : "";
+    return /timeout|abort/i.test(text) ? ("slow" as const) : ("unreadable" as const);
+  }
 }
 
 type RollHit = {
@@ -208,7 +217,13 @@ export function LogBook({
           show(index + 1);
           continue;
         }
-        const result = await liveReadPhoto(preview);
+        const result = await readOne(preview);
+        if (result === "slow" || result === "unreadable") {
+          unreadable += 1;
+          items[index] = { ...items[index], status: result };
+          show(index + 1);
+          continue;
+        }
         if (!result.ok) {
           if (/isn't available/i.test(result.message)) {
             items[index] = { ...items[index], status: "unreadable" };
@@ -302,8 +317,11 @@ export function LogBook({
         duplicates,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      show(items.filter((item) => item.status !== "waiting" && item.status !== "checking").length, null, message || "Those photos could not be searched.");
+      const text = error instanceof Error ? error.message : "";
+      const message = /timeout|abort/i.test(text)
+        ? "One photo took too long, so that one was skipped. The rest keep going."
+        : text || "Those photos could not be searched.";
+      show(items.filter((item) => item.status !== "waiting" && item.status !== "checking").length, null, message);
     } finally {
       setScanning(false);
     }
@@ -601,6 +619,7 @@ const ROLL_STATUS: Record<RollItemStatus, string> = {
   missing: "Missing time or location",
   "not-fish": "No fish in the photo",
   unreadable: "Could not be read",
+  slow: "Took too long",
   duplicate: "Same fish as a clearer photo",
 };
 
