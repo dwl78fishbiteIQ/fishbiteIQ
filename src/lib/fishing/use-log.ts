@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { clearPhotos } from "@/lib/fishing/photos";
+import { readBackup } from "@/lib/fishing/backup";
+import { clearPhotos, savePhoto } from "@/lib/fishing/photos";
 import { SEED } from "@/lib/fishing/seed";
 import type { CatchRow } from "@/lib/fishing/types";
 
 const KEY = "lfa-catch-log-v1";
 const SAMPLE_KEY = "lfa-catch-sample-v1";
+const SAMPLE_VERSION = "wayne-sample-1";
+const SAMPLE_VERSION_KEY = "lfa-sample-version";
 
 function isRow(value: unknown): value is CatchRow {
   if (!value || typeof value !== "object") return false;
@@ -19,14 +22,20 @@ export function useCatchLog() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const parsed = parseRows(raw);
-        if (parsed) setRows(parsed);
-      }
+      const parsed = raw ? parseRows(raw) : null;
+      const version = localStorage.getItem(SAMPLE_VERSION_KEY);
+      const oldSample = Boolean(parsed?.length) && parsed!.every((row) => row.source === "sample");
+      if (!parsed) setRows(SEED);
+      else if (oldSample && version !== SAMPLE_VERSION) setRows(SEED);
+      else setRows(parsed);
+      if (!parsed || oldSample) localStorage.setItem(SAMPLE_VERSION_KEY, SAMPLE_VERSION);
     } catch {
       /* keep the sample book */
     }
     setReady(true);
+    if (localStorage.getItem(SAMPLE_VERSION_KEY) === SAMPLE_VERSION) {
+      void installSamplePhotos();
+    }
   }, []);
 
   useEffect(() => {
@@ -78,5 +87,20 @@ function parseRows(raw: string): CatchRow[] | null {
     return parsed;
   } catch {
     return null;
+  }
+}
+
+async function installSamplePhotos(): Promise<void> {
+  const key = `${SAMPLE_VERSION_KEY}-photos`;
+  if (localStorage.getItem(key) === SAMPLE_VERSION) return;
+  try {
+    const response = await fetch("/sample/wayne-sample-log.zip");
+    if (!response.ok) return;
+    const file = new File([await response.blob()], "wayne-sample-log.zip", { type: "application/zip" });
+    const backup = await readBackup(file);
+    for (const photo of backup.photos) await savePhoto(photo.id, photo.dataUrl);
+    localStorage.setItem(key, SAMPLE_VERSION);
+  } catch {
+    /* the trips still show; photos can load on the next open */
   }
 }
