@@ -321,7 +321,13 @@ export function PhotoDesk({
           ) : null}
           <div className="rounded-lg bg-bg p-3">
             <p className="text-sm font-semibold text-red-700">What bait did you use? Required.</p>
-            {!bait ? <p className="mt-1 text-sm font-semibold text-red-700">Pick a bait before you confirm this catch.</p> : null}
+            {!bait || bait.trim().toLowerCase() === "grub" ? (
+              <p className="mt-1 text-sm font-semibold text-red-700">
+                {bait.trim().toLowerCase() === "grub"
+                  ? "Pick a grub color before you confirm this catch."
+                  : "Pick a bait before you confirm this catch."}
+              </p>
+            ) : null}
             <div className="mt-2">
               <BaitPicker value={bait} onChange={setBait} />
             </div>
@@ -346,7 +352,7 @@ export function PhotoDesk({
             <button
               type="button"
               onClick={() => setReview(true)}
-              disabled={!bait}
+              disabled={!baitReady(bait)}
               className="h-11 rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               Confirm My Catch
@@ -422,7 +428,7 @@ export function PhotoDesk({
             <button
               type="button"
               onClick={save}
-              disabled={!bait}
+              disabled={!baitReady(bait)}
               className="h-11 rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               Confirm My Catch
@@ -566,6 +572,11 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
       <div ref={host} className="catch-map h-64 min-h-64" role="application" aria-label="Where this photo was taken" />
     </MapLock>
   );
+}
+
+function baitReady(bait: string): boolean {
+  const trimmed = bait.trim();
+  return trimmed.length > 0 && trimmed.toLowerCase() !== "grub";
 }
 
 function loggedSnap(
