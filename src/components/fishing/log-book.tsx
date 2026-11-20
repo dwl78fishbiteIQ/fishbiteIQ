@@ -101,7 +101,6 @@ export function LogBook({
   onReplaceWaypoints,
   waypoints,
   onSaveSpot,
-  onBack,
 }: {
   rows: CatchRow[];
   highlight: string | null;
@@ -111,7 +110,6 @@ export function LogBook({
   onReplaceWaypoints: (waypoints: Waypoint[]) => void;
   waypoints: Waypoint[];
   onSaveSpot?: (name: string, lat: number, lng: number) => void;
-  onBack?: () => void;
 }) {
   const [filter, setFilter] = useState<LogFilter>(EMPTY_FILTER);
   const [openSpecies, setOpenSpecies] = useState<string | null>(null);
@@ -415,15 +413,6 @@ export function LogBook({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="h-11 rounded-lg border border-border px-3 text-sm text-fg"
-            >
-              Back to map
-            </button>
-          ) : null}
           <button
             type="button"
             onClick={() => {
@@ -482,15 +471,6 @@ export function LogBook({
                 highlight === row.id ? "border-accent" : "border-border",
               )}
             >
-              {highlight === row.id && onBack ? (
-                <button
-                  type="button"
-                  onClick={onBack}
-                  className="mb-3 h-11 rounded-lg border border-border px-3 text-sm text-fg"
-                >
-                  Back to map
-                </button>
-              ) : null}
               <div className="flex gap-3">
                 <CatchThumb id={row.id} />
                 <div className="min-w-0 flex-1">
@@ -615,14 +595,7 @@ export function LogBook({
                 />
               ) : null}
               {openId === row.id ? (
-                <TripRecord
-                  row={row}
-                  waypoints={waypoints}
-                  onBack={() => {
-                    setOpenId(null);
-                    onBack?.();
-                  }}
-                />
+                <TripRecord row={row} waypoints={waypoints} />
               ) : null}
             </li>
                   );
@@ -1167,7 +1140,7 @@ function ClearedGuide({ onDone }: { onDone: () => void }) {
   );
 }
 
-function TripRecord({ row, waypoints, onBack }: { row: CatchRow; waypoints: Waypoint[]; onBack: () => void }) {
+function TripRecord({ row, waypoints }: { row: CatchRow; waypoints: Waypoint[] }) {
   const [photo, setPhoto] = useState<string | null | undefined>(undefined);
   const spot = spotById(row.spotId);
   const named = placeLabel(row, waypoints);
@@ -1218,13 +1191,6 @@ function TripRecord({ row, waypoints, onBack }: { row: CatchRow; waypoints: Wayp
 
   return (
     <div className="mt-3 rounded-lg bg-bg p-3">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-3 h-11 rounded-lg border border-border bg-surface px-3 text-sm text-fg"
-      >
-        Back to map
-      </button>
       {photo ? (
         <img
           src={photo}
