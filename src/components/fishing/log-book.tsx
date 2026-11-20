@@ -535,15 +535,18 @@ export function LogBook({
                   {openId === row.id ? "Hide photo and data" : "Photo and data"}
                 </button>
                 <button
-                  type={editId === row.id ? "submit" : "button"}
-                  form={editId === row.id ? `catch-edit-${row.id}` : undefined}
+                  type="button"
                   className={
                     editId === row.id
                       ? "inline-flex h-11 items-center rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white"
                       : "inline-flex h-11 items-center gap-1 rounded-md border border-accent bg-surface px-3 text-sm text-accent"
                   }
                   onClick={() => {
-                    if (editId === row.id) return;
+                    if (editId === row.id) {
+                      const form = document.getElementById(`catch-edit-${row.id}`);
+                      if (form instanceof HTMLFormElement) form.requestSubmit();
+                      return;
+                    }
                     setDeleteId(null);
                     setEditId(row.id);
                   }}
@@ -770,6 +773,10 @@ function CatchEditor({
   const field = "mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm";
   const lengthValue = Number(length);
   const countValue = Number(count);
+
+  useEffect(() => {
+    document.getElementById(`catch-edit-${row.id}`)?.scrollIntoView({ block: "nearest" });
+  }, [row.id]);
 
   return (
     <form
