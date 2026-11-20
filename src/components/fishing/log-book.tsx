@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { AmpText } from "@/components/fishing/amp-text";
 import { BaitPicker } from "@/components/fishing/bait-picker";
-import { logRowPreview } from "@/lib/fishing/advisor";
 import { exportBackup, installBackup, readBackup } from "@/lib/fishing/backup";
 import { moonOn } from "@/lib/fishing/moon";
 import { meteoLines } from "@/lib/fishing/photo-weather";
@@ -115,7 +115,6 @@ export function LogBook({
 }) {
   const [filter, setFilter] = useState<LogFilter>(EMPTY_FILTER);
   const [openSpecies, setOpenSpecies] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -542,35 +541,24 @@ export function LogBook({
                 </button>
                 <button
                   type="button"
-                  className="text-sm text-accent underline"
-                  onClick={() => {
-                    const preview = logRowPreview(row);
-                    void navigator.clipboard?.writeText(preview).then(
-                      () => setCopied(row.id),
-                      () => setCopied(null),
-                    );
-                  }}
-                >
-                  {copied === row.id ? "Copied the row" : "Copy log row"}
-                </button>
-                <button
-                  type="button"
-                  className="text-sm text-accent underline"
+                  className="inline-flex items-center gap-1 text-sm text-accent underline"
                   onClick={() => {
                     setDeleteId(null);
                     setEditId((current) => (current === row.id ? null : row.id));
                   }}
                 >
+                  <Pencil className="size-3.5" aria-hidden="true" />
                   {editId === row.id ? "Close edit" : "Edit"}
                 </button>
                 <button
                   type="button"
-                  className="text-sm text-danger underline"
+                  className="inline-flex items-center gap-1 text-sm text-danger underline"
                   onClick={() => {
                     setEditId(null);
                     setDeleteId(row.id);
                   }}
                 >
+                  <Trash2 className="size-3.5" aria-hidden="true" />
                   Delete
                 </button>
               </div>
