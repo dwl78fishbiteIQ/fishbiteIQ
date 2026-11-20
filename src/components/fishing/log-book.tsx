@@ -522,17 +522,17 @@ export function LogBook({
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="inline-flex h-11 items-center rounded-md border border-border bg-surface px-3 text-sm text-fg"
-                  onClick={() => setOpenId((current) => (current === row.id ? null : row.id))}
+                  className="catch-map-button inline-flex h-11 items-center rounded-md border px-3 text-sm font-medium"
+                  onClick={() => setMapRow(row)}
                 >
-                  {openId === row.id ? "Hide photo and data" : "Photo and data"}
+                  Show catch on map
                 </button>
                 <button
                   type="button"
                   className="inline-flex h-11 items-center rounded-md border border-border bg-surface px-3 text-sm text-fg"
-                  onClick={() => setMapRow(row)}
+                  onClick={() => setOpenId((current) => (current === row.id ? null : row.id))}
                 >
-                  Show catch on map
+                  {openId === row.id ? "Hide photo and data" : "Photo and data"}
                 </button>
                 <button
                   type="button"
