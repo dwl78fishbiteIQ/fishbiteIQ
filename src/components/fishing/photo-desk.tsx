@@ -62,6 +62,7 @@ export function PhotoDesk({
   const [confidence, setConfidence] = useState<PhotoRead["confidence"] | "">("");
   const [lengthLow, setLengthLow] = useState("");
   const [lengthHigh, setLengthHigh] = useState("");
+  const [length, setLength] = useState("");
   const [basis, setBasis] = useState("");
   const [setting, setSetting] = useState("");
   const [date, setDate] = useState(today);
@@ -166,6 +167,7 @@ export function PhotoDesk({
       setConfidence(result.confidence);
       setLengthLow(result.lengthLow == null ? "" : String(result.lengthLow));
       setLengthHigh(result.lengthHigh == null ? "" : String(result.lengthHigh));
+      setLength(medianInches(result.lengthLow, result.lengthHigh));
       setBasis(result.lengthBasis);
       setSetting(result.setting);
       setNotes(result.setting);
@@ -203,7 +205,7 @@ export function PhotoDesk({
   }, [lat, lng, waypoints]);
 
   function save() {
-    const length = Number(lengthHigh || lengthLow);
+    const lengthValue = Number(length);
     const namedSpot = spotName.trim();
     if (namedSpot && lat != null && lng != null) {
       const near = nearestWaypoint(lat, lng, waypoints, 0.4);
@@ -225,7 +227,7 @@ export function PhotoDesk({
       bait,
       species,
       count: Math.max(0, Number(count) || 0),
-      lengthIn: Number.isFinite(length) && length > 0 ? length : null,
+      lengthIn: Number.isFinite(lengthValue) && lengthValue > 0 ? lengthValue : null,
       weightLb: null,
       photoFilename: filename,
       notes,
@@ -397,11 +399,8 @@ export function PhotoDesk({
               <input
                 className={field}
                 inputMode="decimal"
-                value={lengthHigh || lengthLow}
-                onChange={(event) => {
-                  setLengthHigh(event.target.value);
-                  setLengthLow("");
-                }}
+                value={length}
+                onChange={(event) => setLength(event.target.value)}
               />
             </label>
           </div>
@@ -572,6 +571,13 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
       <div ref={host} className="catch-map h-64 min-h-64" role="application" aria-label="Where this photo was taken" />
     </MapLock>
   );
+}
+
+function medianInches(low: number | null, high: number | null): string {
+  const values = [low, high].filter((value): value is number => value != null && value > 0);
+  if (!values.length) return "";
+  const mid = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return String(Math.round(mid));
 }
 
 function baitReady(bait: string): boolean {
