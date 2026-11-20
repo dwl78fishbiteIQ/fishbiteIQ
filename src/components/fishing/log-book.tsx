@@ -30,6 +30,8 @@ type RollStatus = {
   summary: { uploaded: number; missing: number; notFish: number; unreadable: number; duplicates: number } | null;
   error: string | null;
   source: "roll" | "onedrive";
+  startedAt: number;
+  stage: string;
 };
 
 function photoName(file: File): string {
@@ -168,22 +170,34 @@ export function LogBook({
     const incoming = Array.from(list);
     const selected = incoming.length;
     let items: RollItem[] = incoming.map((file) => ({ name: photoName(file), status: "waiting" }));
+    const startedAt = Date.now();
     const show = (
       done: number,
       summary: RollStatus["summary"] = null,
       error: string | null = null,
+      stage?: string,
     ) => {
+      const total = items.length;
+      const label =
+        stage ??
+        (summary
+          ? "Finished"
+          : total
+            ? `Checking photo ${Math.min(done + 1, total)} of ${total}`
+            : "Downloading photos from OneDrive");
       setRollStatus({
         selected,
-        total: items.length,
+        total,
         done,
         items: items.map((item) => ({ ...item })),
         summary,
         error,
         source,
+        startedAt,
+        stage: label,
       });
     };
-    show(0);
+    show(0, null, null, source === "onedrive" ? "Downloading photos from OneDrive" : "Opening photos");
     try {
       const files = await filesFromUpload(incoming);
       items = files.map((file) => ({ name: photoName(file), status: "waiting" }));
@@ -626,10 +640,12 @@ const ROLL_STATUS: Record<RollItemStatus, string> = {
 function RollWindow({ status, onClose }: { status: RollStatus; onClose: () => void }) {
   const running = status.summary == null && !status.error;
   const pct = status.total ? Math.round((status.done / status.total) * 100) : 0;
+  const now = useTicker(running);
+  const drive = status.source === "onedrive";
   return (
     <div className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/60 p-4 sm:items-center">
       <section className="flex max-h-[85dvh] w-full max-w-md flex-col gap-3 overflow-hidden rounded-xl border border-border bg-surface p-4">
-        <h2 className="text-2xl text-fg">{status.source === "onedrive" ? "OneDrive upload" : "Camera roll upload"}</h2>
+        <h2 className="text-2xl text-fg">{drive ? "OneDrive upload" : "Camera roll upload"}</h2>
         <p className="text-sm text-fg">
           {status.selected} photo{status.selected === 1 ? "" : "s"} selected
           {status.total !== status.selected ? ` · ${status.total} can be checked` : ""}
@@ -637,9 +653,22 @@ function RollWindow({ status, onClose }: { status: RollStatus; onClose: () => vo
         <div className="h-2 overflow-hidden rounded-full bg-bg">
           <div className="h-full bg-accent" style={{ width: `${running ? Math.max(pct, 4) : pct}%` }} />
         </div>
-        <p className="text-sm text-muted">
-          {running ? `Checking photo ${Math.min(status.done + 1, status.total)} of ${status.total}` : `${status.done} of ${status.total} checked`}
-        </p>
+        {drive ? (
+          <div className="space-y-1 text-sm">
+            <p className="font-semibold text-fg">{status.stage}</p>
+            <p className="text-muted">
+              {status.done} of {status.total} checked · {pct}%
+            </p>
+            <p className="tabular-nums text-fg">
+              {running ? timeLeft(status, now) : status.summary ? "Done" : "Stopped"}
+            </p>
+            <p className="tabular-nums text-muted">Elapsed {clock(now - status.startedAt)}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            {running ? `Checking photo ${Math.min(status.done + 1, status.total)} of ${status.total}` : `${status.done} of ${status.total} checked`}
+          </p>
+        )}
         <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
           {status.items.map((item, index) => (
             <li key={`${item.name}-${index}`} className="flex items-baseline justify-between gap-3 text-sm">
@@ -675,6 +704,34 @@ function RollWindow({ status, onClose }: { status: RollStatus; onClose: () => vo
       </section>
     </div>
   );
+}
+
+function useTicker(running: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [running]);
+  return now;
+}
+
+function clock(ms: number): string {
+  const sec = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(sec / 60);
+  return `${minutes}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+function timeLeft(status: RollStatus, now: number): string {
+  if (!status.total) return "Downloading…";
+  if (status.done <= 0) return "Estimating time remaining…";
+  const elapsed = Math.max(1, now - status.startedAt);
+  const leftMs = (elapsed / status.done) * (status.total - status.done);
+  if (leftMs < 5000) return "Almost done";
+  const left = Math.round(leftMs / 1000);
+  if (left < 60) return `About ${left} seconds left`;
+  const minutes = Math.ceil(left / 60);
+  return `About ${minutes} minute${minutes === 1 ? "" : "s"} left`;
 }
 
 function EstablishPage({
