@@ -11,7 +11,7 @@ import { captureStamp, readPhotoMeta } from "@/lib/fishing/photo-meta";
 import { hoursAfterTurn, noaaPhotoLink, stageFromStation, tidePhrase } from "@/lib/fishing/station";
 import { EMPTY_FILTER, filterRows, placeLabel, type LogFilter } from "@/lib/fishing/log-filter";
 import { loadPhoto, savePhoto, deletePhoto } from "@/lib/fishing/photos";
-import { spotById } from "@/lib/fishing/spots";
+import { spotById, spotsWithinFeet } from "@/lib/fishing/spots";
 import { clockToMinutes, formatPrettyDate } from "@/lib/fishing/time";
 import type { CatchRow, PhotoRead, Species, TideEvent } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
@@ -100,6 +100,7 @@ export function LogBook({
   onReplace,
   onReplaceWaypoints,
   waypoints,
+  onSaveSpot,
   onBack,
 }: {
   rows: CatchRow[];
@@ -109,6 +110,7 @@ export function LogBook({
   onReplace: (rows: CatchRow[]) => void;
   onReplaceWaypoints: (waypoints: Waypoint[]) => void;
   waypoints: Waypoint[];
+  onSaveSpot?: (name: string, lat: number, lng: number) => void;
   onBack?: () => void;
 }) {
   const [filter, setFilter] = useState<LogFilter>(EMPTY_FILTER);
@@ -603,7 +605,19 @@ export function LogBook({
                   row={row}
                   onCancel={() => setEditId(null)}
                   onSave={(next) => {
-                    onReplace(rows.map((item) => (item.id === next.id ? next : item)));
+                    const named = next.spotName?.trim() ?? "";
+                    let saved = next;
+                    if (named && next.lat != null && next.lng != null) {
+                      const same = spotsWithinFeet(next.lat, next.lng, waypoints, 100).find(
+                        (spot) => spot.name.toLowerCase() === named.toLowerCase(),
+                      );
+                      if (same) {
+                        saved = { ...next, spotName: same.name, spotId: same.kind === "guide" ? same.id : next.spotId };
+                      } else {
+                        onSaveSpot?.(named, next.lat, next.lng);
+                      }
+                    }
+                    onReplace(rows.map((item) => (item.id === saved.id ? saved : item)));
                     setEditId(null);
                   }}
                 />
@@ -708,6 +722,9 @@ function CatchEditor({
         <label className="text-sm text-muted">
           Spot name
           <input className={field} value={spotName} onChange={(event) => setSpotName(event.target.value)} />
+          <span className="mt-1 block text-xs">
+            A new name is added to the maps unless that same spot is already within 100 ft.
+          </span>
         </label>
       </div>
       <div>

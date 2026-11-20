@@ -270,6 +270,7 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             onReplace={log.replace}
             onReplaceWaypoints={marks.replace}
             waypoints={marks.waypoints}
+            onSaveSpot={marks.saveEdited}
             onBack={() => {
               setHighlight(null);
               setMapReturn(null);

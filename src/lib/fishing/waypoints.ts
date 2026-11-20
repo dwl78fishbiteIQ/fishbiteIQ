@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { milesBetween } from "@/lib/fishing/spots";
+import { milesBetween, spotsWithinFeet } from "@/lib/fishing/spots";
 
 export type Waypoint = {
   id: string;
@@ -58,6 +58,16 @@ export function useWaypoints() {
     },
     remove(id: string) {
       setWaypoints((current) => current.filter((mark) => mark.id !== id));
+    },
+    saveEdited(name: string, lat: number, lng: number) {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      setWaypoints((current) => {
+        const near = spotsWithinFeet(lat, lng, current, 100);
+        if (near.some((spot) => spot.name.toLowerCase() === trimmed.toLowerCase())) return current;
+        const id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `wp-${Date.now()}`;
+        return [...current, { id, name: trimmed, lat, lng }];
+      });
     },
     replace(next: Waypoint[]) {
       setWaypoints(next);
