@@ -282,7 +282,6 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
             rows={log.rows}
             waypoints={marks.waypoints}
             onOpenTrip={(id) => openLog(id, "map")}
-            onSaveWaypoint={marks.save}
             onDeleteWaypoint={marks.remove}
           />
         ) : null}

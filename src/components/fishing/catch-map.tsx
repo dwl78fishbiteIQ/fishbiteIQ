@@ -16,14 +16,12 @@ export function CatchMap({
   compact = false,
   waypoints = [],
   onOpenTrip,
-  onSaveWaypoint,
   onDeleteWaypoint,
 }: {
   rows: CatchRow[];
   compact?: boolean;
   waypoints?: Waypoint[];
   onOpenTrip?: (id: string) => void;
-  onSaveWaypoint?: (name: string, lat: number, lng: number) => void;
   onDeleteWaypoint?: (id: string) => void;
 }) {
   const [species, setSpecies] = useState<Species | "">("");
@@ -39,18 +37,9 @@ export function CatchMap({
   const groupRef = useRef<LayerGroup | null>(null);
   const fitted = useRef("");
   const [ready, setReady] = useState(false);
-  const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
-  const [name, setName] = useState("");
   const [heat, setHeat] = useState(false);
   const [locked, setLocked] = useState(true);
   const heatCanvas = useRef<HTMLCanvasElement | null>(null);
-  const compactRef = useRef(compact);
-  compactRef.current = compact;
-  const clickRef = useRef<(lat: number, lng: number) => void>(() => {});
-  clickRef.current = (lat, lng) => {
-    if (compactRef.current) return;
-    setDraft({ lat, lng });
-  };
 
   useEffect(() => {
     const el = host.current;
@@ -84,7 +73,6 @@ export function CatchMap({
       map.setView([32.78, -79.88], 11);
       freezeMap(map);
       addPlaceLabels(L, map);
-      map.on("click", (event) => clickRef.current(event.latlng.lat, event.latlng.lng));
       mapRef.current = map;
       groupRef.current = L.layerGroup().addTo(map);
       const onResize = () => map.invalidateSize();
@@ -156,11 +144,6 @@ export function CatchMap({
           fillOpacity: 1,
         });
         marker.bindTooltip(mark.name, { direction: "top" });
-        marker.on("click", (event) => {
-          L.DomEvent.stopPropagation(event);
-          setDraft({ lat: mark.lat, lng: mark.lng });
-          setName(mark.name);
-        });
         marker.addTo(group);
       }
       const spots = [
@@ -222,7 +205,6 @@ export function CatchMap({
           <p className="text-sm text-muted">
             {filtered.length} trips across {pins.length} {pins.length === 1 ? "place" : "places"}. Photo
             GPS is used when a trip has it. Everything else sits on the guide spot.
-            {compact ? "" : " Tap the map to name a waypoint."}
             {heat ? " Brighter color means more fish logged there." : ""}
           </p>
         </div>
@@ -254,31 +236,6 @@ export function CatchMap({
         </select>
         </div>
       </div>
-
-      {!compact && (draft || selected) ? (
-        <form
-          className="flex flex-wrap items-center gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const at = draft ?? (selected ? { lat: selected.lat, lng: selected.lng } : null);
-            if (!at || !name.trim()) return;
-            onSaveWaypoint?.(name, at.lat, at.lng);
-            setName("");
-            setDraft(null);
-          }}
-        >
-          <input
-            className="h-11 min-w-56 flex-1 rounded-lg border border-border bg-surface px-3 text-sm text-fg"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={draft ? "Name this pin" : "Name the selected catch place"}
-            aria-label="Waypoint name"
-          />
-          <button type="submit" className="h-11 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-fg">
-            Save waypoint
-          </button>
-        </form>
-      ) : null}
 
       {!compact && waypoints.length ? (
         <ul className="flex flex-wrap gap-2">
