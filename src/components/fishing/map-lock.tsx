@@ -55,6 +55,10 @@ function MapLegend() {
   return (
     <ul className="pointer-events-none absolute bottom-2 left-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap gap-x-3 gap-y-1 rounded-lg bg-black/75 px-2 py-1.5 text-[10px] font-semibold text-white">
       <li className="flex items-center gap-1">
+        <span className="inline-block size-2.5 rounded-full border-2 border-[#7a120c] bg-[#e10600]" />
+        Catch
+      </li>
+      <li className="flex items-center gap-1">
         <svg viewBox="0 0 16 20" width="12" height="15" aria-hidden="true">
           <path fill="#e08a3c" stroke="#1a1208" strokeWidth="1.2" d="M8 1.2a5.2 5.2 0 0 0-5.2 5.2c0 3.9 5.2 11.2 5.2 11.2s5.2-7.3 5.2-11.2A5.2 5.2 0 0 0 8 1.2Z" />
           <circle cx="8" cy="6.4" r="1.7" fill="#1a1208" />

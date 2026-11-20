@@ -104,18 +104,17 @@ export function CatchMap({
       map.invalidateSize();
       group.clearLayers();
       const root = getComputedStyle(document.documentElement);
-      const accent = root.getPropertyValue("--color-accent").trim();
-      const ink = root.getPropertyValue("--color-accent-fg").trim();
       const surface = root.getPropertyValue("--color-surface-2").trim();
+      const catchRed = "#e10600";
       for (const pin of pins) {
         if (heat) break;
         const active = pin.id === selected?.id;
         const empty = pin.fish === 0;
         const marker = L.circleMarker([pin.lat, pin.lng], {
           radius: empty ? 9 : Math.min(20, 9 + Math.sqrt(pin.fish)),
-          color: active ? ink : accent,
+          color: active ? "#fff" : "#7a120c",
           weight: active ? 3 : 2,
-          fillColor: empty ? surface : accent,
+          fillColor: empty ? surface : catchRed,
           fillOpacity: 0.92,
         });
         marker.bindTooltip(`${pin.rows.length}`, {
@@ -326,9 +325,9 @@ function paintHeat(
     const strength = 0.4 + 0.6 * (weight / max);
     const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, radius);
     gradient.addColorStop(0, `rgba(255, 244, 214, ${0.85 * strength})`);
-    gradient.addColorStop(0.35, `rgba(225, 6, 0, ${0.7 * strength})`);
-    gradient.addColorStop(0.72, `rgba(224, 138, 60, ${0.28 * strength})`);
-    gradient.addColorStop(1, "rgba(224, 138, 60, 0)");
+    gradient.addColorStop(0.35, `rgba(225, 6, 0, ${0.75 * strength})`);
+    gradient.addColorStop(0.72, `rgba(225, 6, 0, ${0.28 * strength})`);
+    gradient.addColorStop(1, "rgba(225, 6, 0, 0)");
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
