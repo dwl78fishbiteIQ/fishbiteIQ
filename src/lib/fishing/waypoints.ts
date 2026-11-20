@@ -9,6 +9,7 @@ export type Waypoint = {
 };
 
 const KEY = "lfa-waypoints-v1";
+const EVENT = "lfa-waypoints";
 
 function isWaypoint(value: unknown): value is Waypoint {
   if (!value || typeof value !== "object") return false;
@@ -38,6 +39,7 @@ export function useWaypoints() {
   useEffect(() => {
     if (!ready) return;
     localStorage.setItem(KEY, JSON.stringify(waypoints));
+    window.dispatchEvent(new CustomEvent(EVENT));
   }, [waypoints, ready]);
 
   return {
@@ -71,6 +73,18 @@ export function storedWaypoints(): Waypoint[] {
   } catch {
     return [];
   }
+}
+
+export function subscribeWaypoints(onChange: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === KEY) onChange();
+  };
+  window.addEventListener(EVENT, onChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(EVENT, onChange);
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 export function nearestWaypoint(lat: number, lng: number, waypoints: Waypoint[], withinMiles: number): Waypoint | null {

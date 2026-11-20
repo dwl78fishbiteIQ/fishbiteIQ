@@ -2,7 +2,7 @@ import type { Map as LeafletMap, Marker } from "leaflet";
 import { PUBLIC_MARKS } from "@/lib/fishing/public-structure";
 import { SPOTS } from "@/lib/fishing/spots";
 import { publicLandings } from "@/lib/fishing/waters";
-import { storedWaypoints } from "@/lib/fishing/waypoints";
+import { storedWaypoints, subscribeWaypoints } from "@/lib/fishing/waypoints";
 
 const LANDING_ICON = `<svg class="landing-icon" viewBox="0 0 20 16" width="16" height="13" aria-hidden="true"><path fill="#4da3e0" stroke="#082033" stroke-width="1" d="M2 9.5 4.2 13h11.6L18 9.5c-2.2 1.2-5 1.6-8 1.6s-5.8-.4-8-1.6Z"/><path fill="#d7f1ff" stroke="#082033" stroke-width="1" d="M8 9V4.5h4.2L14 9"/><path stroke="#082033" stroke-width="1" d="M10 4.5V2"/></svg>`;
 
@@ -44,9 +44,15 @@ export function addPlaceLabels(L: Leaflet, map: LeafletMap, options?: { users?: 
   for (const spot of SPOTS) {
     placeSpot(L, map, spot, "public");
   }
-  if (options?.users !== false) {
-    for (const spot of storedWaypoints()) placeSpot(L, map, spot, "user");
-  }
+  const users = L.layerGroup().addTo(map);
+  const drawUsers = () => {
+    users.clearLayers();
+    if (options?.users === false) return;
+    for (const spot of storedWaypoints()) placeSpot(L, users, spot, "user");
+  };
+  drawUsers();
+  const stopUsers = subscribeWaypoints(drawUsers);
+  map.on("unload", stopUsers);
   const apply = () => {
     const zoom = map.getZoom();
     if (zoom == null) return;
