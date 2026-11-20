@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { readBackup } from "@/lib/fishing/backup";
-import { clearPhotos, savePhoto } from "@/lib/fishing/photos";
+import { clearPhotos, deletePhoto, savePhoto } from "@/lib/fishing/photos";
 import { SEED } from "@/lib/fishing/seed";
 import type { CatchRow } from "@/lib/fishing/types";
 
 const KEY = "lfa-catch-log-v1";
 const SAMPLE_KEY = "lfa-catch-sample-v1";
-const SAMPLE_VERSION = "wayne-sample-1";
+const SAMPLE_VERSION = "wayne-sample-2";
 const SAMPLE_VERSION_KEY = "lfa-sample-version";
 
 function isRow(value: unknown): value is CatchRow {
@@ -23,19 +23,21 @@ export function useCatchLog() {
     try {
       const raw = localStorage.getItem(KEY);
       const parsed = raw ? parseRows(raw) : null;
-      const version = localStorage.getItem(SAMPLE_VERSION_KEY);
-      const oldSample = Boolean(parsed?.length) && parsed!.every((row) => row.source === "sample");
-      if (!parsed) setRows(SEED);
-      else if (oldSample && version !== SAMPLE_VERSION) setRows(SEED);
-      else setRows(parsed);
-      if (!parsed || oldSample) localStorage.setItem(SAMPLE_VERSION_KEY, SAMPLE_VERSION);
+      const seedIds = new Set(SEED.map((row) => row.id));
+      const cleaned = parsed?.filter((row) => row.source !== "sample" || seedIds.has(row.id)) ?? null;
+      const removed = parsed?.filter((row) => row.source === "sample" && !seedIds.has(row.id)) ?? [];
+      for (const row of removed) void deletePhoto(row.id).catch(() => undefined);
+      const hasUser = cleaned?.some((row) => row.source !== "sample") ?? false;
+      const hasBackup = cleaned?.some((row) => seedIds.has(row.id)) ?? false;
+      if (!cleaned || (!hasUser && !hasBackup)) setRows(SEED);
+      else setRows(cleaned);
+      localStorage.removeItem(SAMPLE_KEY);
+      localStorage.setItem(SAMPLE_VERSION_KEY, SAMPLE_VERSION);
+      if (!hasUser || hasBackup) void installSamplePhotos();
     } catch {
       /* keep the sample book */
     }
     setReady(true);
-    if (localStorage.getItem(SAMPLE_VERSION_KEY) === SAMPLE_VERSION) {
-      void installSamplePhotos();
-    }
   }, []);
 
   useEffect(() => {
