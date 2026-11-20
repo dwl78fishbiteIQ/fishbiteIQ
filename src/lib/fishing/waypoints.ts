@@ -63,6 +63,16 @@ export function useWaypoints() {
   };
 }
 
+export function storedWaypoints(): Waypoint[] {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return [];
+    return parseWaypoints(JSON.parse(raw) as unknown);
+  } catch {
+    return [];
+  }
+}
+
 export function nearestWaypoint(lat: number, lng: number, waypoints: Waypoint[], withinMiles: number): Waypoint | null {
   let best: Waypoint | null = null;
   let miles = withinMiles;

@@ -6,7 +6,7 @@ import { spotById } from "@/lib/fishing/spots";
 import { formatPrettyDate } from "@/lib/fishing/time";
 import type { CatchRow, Species } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
-import { addPlaceLabels } from "@/lib/fishing/map-labels";
+import { addPlaceLabels, placeSpot } from "@/lib/fishing/map-labels";
 import { type Waypoint } from "@/lib/fishing/waypoints";
 import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { cn } from "@/lib/cn";
@@ -72,7 +72,7 @@ export function CatchMap({
       ).addTo(map);
       map.setView([32.78, -79.88], 11);
       freezeMap(map);
-      addPlaceLabels(L, map);
+      addPlaceLabels(L, map, { users: false });
       mapRef.current = map;
       groupRef.current = L.layerGroup().addTo(map);
       const onResize = () => map.invalidateSize();
@@ -136,15 +136,7 @@ export function CatchMap({
         marker.addTo(group);
       }
       for (const mark of waypoints) {
-        const marker = L.circleMarker([mark.lat, mark.lng], {
-          radius: 7,
-          color: "#1c3d36",
-          weight: 2,
-          fillColor: "#f4e7c5",
-          fillOpacity: 1,
-        });
-        marker.bindTooltip(mark.name, { direction: "top" });
-        marker.addTo(group);
+        placeSpot(L, group, mark, "user");
       }
       const spots = [
         ...pins.map((pin) => [pin.lat, pin.lng] as [number, number]),
