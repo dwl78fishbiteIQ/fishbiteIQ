@@ -63,7 +63,7 @@ function MapLegend() {
           <path fill="#e08a3c" stroke="#1a1208" strokeWidth="1.2" d="M8 1.2a5.2 5.2 0 0 0-5.2 5.2c0 3.9 5.2 11.2 5.2 11.2s5.2-7.3 5.2-11.2A5.2 5.2 0 0 0 8 1.2Z" />
           <circle cx="8" cy="6.4" r="1.7" fill="#1a1208" />
         </svg>
-        Public
+        Public Spots
       </li>
       <li className="flex items-center gap-1">
         <svg viewBox="0 0 18 18" width="13" height="13" aria-hidden="true">
@@ -77,11 +77,11 @@ function MapLegend() {
           <path fill="#d7f1ff" stroke="#082033" strokeWidth="1" d="M8 9V4.5h4.2L14 9" />
           <path stroke="#082033" strokeWidth="1" d="M10 4.5V2" />
         </svg>
-        Landing
+        Public Landing
       </li>
       <li className="flex items-center gap-1">
         <span className="inline-block size-2.5 rounded-full border-2 border-white bg-[#f4e7c5]" />
-        Flat
+        DNR Flat
       </li>
       <li className="flex items-center gap-1">
         <span className="inline-block size-2.5 border-2 border-white bg-[#e08a3c]" />
