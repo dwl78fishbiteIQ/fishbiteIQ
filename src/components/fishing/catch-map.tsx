@@ -3,12 +3,11 @@ import type { LayerGroup, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { catchPins, type CatchPin } from "@/lib/fishing/pins";
 import { spotById } from "@/lib/fishing/spots";
-import { tidePhrase } from "@/lib/fishing/station";
 import { formatPrettyDate } from "@/lib/fishing/time";
 import type { CatchRow, Species } from "@/lib/fishing/types";
 import { SPECIES } from "@/lib/fishing/types";
 import { addPlaceLabels } from "@/lib/fishing/map-labels";
-import { nearestWaypoint, type Waypoint } from "@/lib/fishing/waypoints";
+import { type Waypoint } from "@/lib/fishing/waypoints";
 import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { cn } from "@/lib/cn";
 
@@ -294,68 +293,7 @@ export function CatchMap({
         </ul>
       ) : null}
 
-      {pins.length === 0 ? (
-        <p className="text-sm text-muted">Nothing to plot for that filter.</p>
-      ) : compact ? null : (
-        <ul className="grid gap-2 md:grid-cols-2">
-          {pins.map((pin) => {
-            const active = pin.id === selected?.id;
-            return (
-              <li key={pin.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(pin.id);
-                    mapRef.current?.panTo([pin.lat, pin.lng]);
-                  }}
-                  className={cn(
-                    "w-full rounded-xl border p-3 text-left",
-                    active ? "border-accent bg-surface" : "border-border bg-surface",
-                  )}
-                >
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium text-fg">
-                      {nearestWaypoint(pin.lat, pin.lng, waypoints, 0.4)?.name ?? pin.title}
-                    </span>
-                    <span className="text-sm font-semibold text-accent tabular-nums">
-                      {pin.fish} fish
-                    </span>
-                  </span>
-                  <span className="mt-1 block text-sm text-muted">
-                    {pin.area} · {pin.rows.length} {pin.rows.length === 1 ? "trip" : "trips"}
-                    {pin.photoCount ? ` · ${pin.photoCount} from photo GPS` : ""}
-                  </span>
-                </button>
-                {active ? (
-                  <ul className="mt-2 space-y-2">
-                    {pin.rows.map((row) => (
-                      <li key={row.id}>
-                        <button
-                          type="button"
-                          onClick={() => onOpenTrip?.(row.id)}
-                          className="w-full rounded-lg bg-bg px-3 py-2 text-left text-sm"
-                        >
-                          <p className="text-fg tabular-nums">
-                            {formatPrettyDate(row.date)}
-                            {row.startTime ? ` · ${row.startTime}` : ""}
-                          </p>
-                          <p className="text-muted">
-                            {row.count} {row.species}
-                            {row.lengthIn ? ` · ${row.lengthIn} in` : ""} · {tidePhrase(row)}
-                            {row.lat != null && row.lng != null
-                              ? ` · ${row.lat.toFixed(4)}, ${row.lng.toFixed(4)}`
-                              : ""}
-                          </p>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {pins.length === 0 ? <p className="text-sm text-muted">Nothing to plot for that filter.</p> : null}
 
       <div className="overflow-hidden rounded-xl border border-border">
         <MapLock
