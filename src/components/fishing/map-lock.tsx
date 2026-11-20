@@ -56,7 +56,7 @@ function MapLegend() {
     <ul className="pointer-events-none absolute bottom-2 left-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap gap-x-3 gap-y-1 rounded-lg bg-black/75 px-2 py-1.5 text-[10px] font-semibold text-white">
       <li className="flex items-center gap-1">
         <span className="inline-block size-2.5 rounded-full border-2 border-[#7a120c] bg-[#e10600]" />
-        Catch
+        Catch Logs
       </li>
       <li className="flex items-center gap-1">
         <svg viewBox="0 0 16 20" width="12" height="15" aria-hidden="true">
@@ -69,7 +69,7 @@ function MapLegend() {
         <svg viewBox="0 0 18 18" width="13" height="13" aria-hidden="true">
           <path fill="#ffe14a" stroke="#1a1208" strokeWidth="1.2" d="m9 1.4 2.1 4.4 4.8.6-3.5 3.3.9 4.8L9 12.2 4.7 14.5l.9-4.8L2.1 6.4l4.8-.6Z" />
         </svg>
-        Your spot
+        Your Spots
       </li>
       <li className="flex items-center gap-1">
         <svg viewBox="0 0 20 16" width="14" height="11" aria-hidden="true">
@@ -85,7 +85,7 @@ function MapLegend() {
       </li>
       <li className="flex items-center gap-1">
         <span className="inline-block size-2.5 border-2 border-white bg-[#e08a3c]" />
-        Reef
+        DNR Reef
       </li>
     </ul>
   );
