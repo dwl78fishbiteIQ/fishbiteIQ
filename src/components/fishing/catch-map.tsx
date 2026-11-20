@@ -134,24 +134,26 @@ export function CatchMap({
         });
         marker.addTo(group);
       }
-      const spots = [
-        ...pins.map((pin) => [pin.lat, pin.lng] as [number, number]),
-        ...waypoints.map((mark) => [mark.lat, mark.lng] as [number, number]),
-      ];
-      const key = `${pins.map((pin) => pin.id).join("|")}#${waypoints.map((mark) => mark.id).join("|")}`;
-      if (!locked && spots.length && fitted.current !== key) {
+      const catches = pins.map((pin) => [pin.lat, pin.lng] as [number, number]);
+      const key = pins.map((pin) => pin.id).join("|");
+      if (catches.length && fitted.current !== key) {
         fitted.current = key;
-        map.fitBounds(L.latLngBounds(spots), { padding: [36, 36], maxZoom: 13 });
+        requestAnimationFrame(() => {
+          if (dead) return;
+          map.invalidateSize();
+          if (catches.length === 1) map.setView(catches[0], 13);
+          else map.fitBounds(L.latLngBounds(catches), { padding: [36, 36], maxZoom: 13 });
+        });
       }
-      if (!locked && !spots.length) {
-        fitted.current = "";
+      if (!catches.length && fitted.current !== "none") {
+        fitted.current = "none";
         map.setView([32.78, -79.88], 11);
       }
     });
     return () => {
       dead = true;
     };
-  }, [pins, waypoints, selected?.id, ready, onOpenTrip, heat, locked]);
+  }, [pins, selected?.id, ready, onOpenTrip, heat]);
 
   useEffect(() => {
     const map = mapRef.current;
