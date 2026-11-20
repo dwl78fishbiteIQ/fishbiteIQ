@@ -34,6 +34,17 @@ export async function clearPhotos(): Promise<void> {
   db.close();
 }
 
+export async function deletePhoto(id: string): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
 export async function loadPhoto(id: string): Promise<string | null> {
   const db = await openDb();
   const value = await new Promise<string | null>((resolve, reject) => {

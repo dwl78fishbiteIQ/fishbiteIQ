@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AmpText } from "@/components/fishing/amp-text";
+import { BaitPicker } from "@/components/fishing/bait-picker";
 import { logRowPreview } from "@/lib/fishing/advisor";
 import { exportBackup, installBackup, readBackup } from "@/lib/fishing/backup";
 import { moonOn } from "@/lib/fishing/moon";
@@ -9,7 +10,7 @@ import { liveConditions, liveReadPhoto } from "@/lib/fishing/live";
 import { captureStamp, readPhotoMeta } from "@/lib/fishing/photo-meta";
 import { hoursAfterTurn, noaaPhotoLink, stageFromStation, tidePhrase } from "@/lib/fishing/station";
 import { EMPTY_FILTER, filterRows, placeLabel, type LogFilter } from "@/lib/fishing/log-filter";
-import { loadPhoto, savePhoto } from "@/lib/fishing/photos";
+import { loadPhoto, savePhoto, deletePhoto } from "@/lib/fishing/photos";
 import { spotById } from "@/lib/fishing/spots";
 import { clockToMinutes, formatPrettyDate } from "@/lib/fishing/time";
 import type { CatchRow, PhotoRead, Species, TideEvent } from "@/lib/fishing/types";
@@ -114,6 +115,8 @@ export function LogBook({
   const [openSpecies, setOpenSpecies] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [importNote, setImportNote] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedGuide, setClearedGuide] = useState(false);
@@ -548,7 +551,63 @@ export function LogBook({
                 >
                   {copied === row.id ? "Copied the row" : "Copy log row"}
                 </button>
+                <button
+                  type="button"
+                  className="text-sm text-accent underline"
+                  onClick={() => {
+                    setDeleteId(null);
+                    setEditId((current) => (current === row.id ? null : row.id));
+                  }}
+                >
+                  {editId === row.id ? "Close edit" : "Edit"}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-danger underline"
+                  onClick={() => {
+                    setEditId(null);
+                    setDeleteId(row.id);
+                  }}
+                >
+                  Delete
+                </button>
               </div>
+              {deleteId === row.id ? (
+                <div className="mt-3 rounded-lg border border-border bg-bg p-3">
+                  <p className="text-sm text-fg">Delete this catch from the log?</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onReplace(rows.filter((item) => item.id !== row.id));
+                        void deletePhoto(row.id).catch(() => undefined);
+                        if (openId === row.id) setOpenId(null);
+                        setDeleteId(null);
+                      }}
+                      className="h-11 rounded-lg bg-danger px-4 text-sm font-semibold text-danger-fg"
+                    >
+                      Delete catch
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteId(null)}
+                      className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {editId === row.id ? (
+                <CatchEditor
+                  row={row}
+                  onCancel={() => setEditId(null)}
+                  onSave={(next) => {
+                    onReplace(rows.map((item) => (item.id === next.id ? next : item)));
+                    setEditId(null);
+                  }}
+                />
+              ) : null}
               {openId === row.id ? (
                 <TripRecord
                   row={row}
@@ -574,6 +633,110 @@ export function LogBook({
         </>
       )}
     </div>
+  );
+}
+
+function CatchEditor({
+  row,
+  onSave,
+  onCancel,
+}: {
+  row: CatchRow;
+  onSave: (row: CatchRow) => void;
+  onCancel: () => void;
+}) {
+  const [date, setDate] = useState(row.date);
+  const [time, setTime] = useState(row.startTime);
+  const [species, setSpecies] = useState<Species | "">(row.species);
+  const [length, setLength] = useState(row.lengthIn == null ? "" : String(row.lengthIn));
+  const [bait, setBait] = useState(row.bait);
+  const [count, setCount] = useState(String(row.count));
+  const [spotName, setSpotName] = useState(row.spotName ?? "");
+  const [notes, setNotes] = useState(row.notes);
+  const field = "mt-1 h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg md:text-sm";
+  const lengthValue = Number(length);
+  const countValue = Number(count);
+
+  return (
+    <form
+      className="mt-3 space-y-3 rounded-lg border border-border bg-bg p-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave({
+          ...row,
+          date,
+          startTime: time,
+          species,
+          lengthIn: Number.isFinite(lengthValue) && lengthValue > 0 ? lengthValue : null,
+          bait: bait.trim(),
+          count: Number.isFinite(countValue) && countValue > 0 ? Math.round(countValue) : 0,
+          spotName: spotName.trim(),
+          notes,
+        });
+      }}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm text-muted">
+          Date
+          <input type="date" className={field} value={date} onChange={(event) => setDate(event.target.value)} />
+        </label>
+        <label className="text-sm text-muted">
+          Time
+          <input type="time" className={field} value={time} onChange={(event) => setTime(event.target.value)} />
+        </label>
+        <label className="text-sm text-muted">
+          Species
+          <select
+            className={field}
+            value={species}
+            onChange={(event) => setSpecies(event.target.value as Species | "")}
+          >
+            <option value="">Unconfirmed</option>
+            {SPECIES.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-muted">
+          Approximate length (in)
+          <input className={field} inputMode="decimal" value={length} onChange={(event) => setLength(event.target.value)} />
+        </label>
+        <label className="text-sm text-muted">
+          Count
+          <input className={field} inputMode="numeric" value={count} onChange={(event) => setCount(event.target.value)} />
+        </label>
+        <label className="text-sm text-muted">
+          Spot name
+          <input className={field} value={spotName} onChange={(event) => setSpotName(event.target.value)} />
+        </label>
+      </div>
+      <div>
+        <p className="text-sm text-muted">Bait</p>
+        <div className="mt-1">
+          <BaitPicker value={bait} onChange={setBait} />
+        </div>
+      </div>
+      <label className="block text-sm text-muted">
+        Notes
+        <textarea
+          className="mt-1 min-h-20 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-fg md:text-sm"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <button type="submit" className="h-11 rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white">
+          Save changes
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-11 rounded-lg border border-border px-4 text-sm text-fg"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
