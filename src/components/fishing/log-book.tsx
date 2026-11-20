@@ -531,17 +531,17 @@ export function LogBook({
                   NOAA 8665530 for this photo
                 </a>
               ) : null}
-              <div className="mt-2 flex flex-wrap gap-4">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="text-sm text-accent underline"
+                  className="inline-flex h-11 items-center rounded-md border border-border bg-surface px-3 text-sm text-fg"
                   onClick={() => setOpenId((current) => (current === row.id ? null : row.id))}
                 >
                   {openId === row.id ? "Hide photo and data" : "Photo and data"}
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 text-sm text-accent underline"
+                  className="inline-flex h-11 items-center gap-1 rounded-md border border-accent bg-surface px-3 text-sm text-accent"
                   onClick={() => {
                     setDeleteId(null);
                     setEditId((current) => (current === row.id ? null : row.id));
@@ -552,7 +552,7 @@ export function LogBook({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 text-sm text-danger underline"
+                  className="inline-flex h-11 items-center gap-1 rounded-md border border-danger bg-surface px-3 text-sm text-danger"
                   onClick={() => {
                     setEditId(null);
                     setDeleteId(row.id);
