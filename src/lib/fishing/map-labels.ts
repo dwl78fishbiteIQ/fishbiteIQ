@@ -49,8 +49,10 @@ export function addPlaceLabels(L: Leaflet, map: LeafletMap, options?: { users?: 
     const zoom = map.getZoom();
     if (zoom == null) return;
     const container = map.getContainer();
+    const miles = scaleMiles(map);
     container.dataset.labelZoom = labelZoom(zoom);
-    container.dataset.landingScale = scaleMiles(map) < 1 ? "in" : "out";
+    container.dataset.mapScale = miles < 1 ? "near" : miles < 3 ? "mid" : "far";
+    container.dataset.landingScale = miles < 1 ? "in" : "out";
   };
   map.on("zoom zoomend resize", apply);
   apply();

@@ -189,7 +189,7 @@
 }
 
 .spot-label span {
-  display: inline;
+  display: none;
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
@@ -198,6 +198,45 @@
   text-shadow:
     0 0 4px #1a1208,
     0 1px 2px #1a1208;
+}
+
+.leaflet-container[data-map-scale="near"] .spot-label span,
+.leaflet-container[data-map-scale="near"] .landing-label span,
+.leaflet-container[data-map-scale="near"] .flat-label span:not(.mark-dot),
+.leaflet-container[data-map-scale="near"] .structure-label span:not(.mark-dot) {
+  display: inline;
+}
+
+.leaflet-container[data-map-scale="far"] .flat-label,
+.leaflet-container[data-map-scale="far"] .structure-label {
+  display: none;
+}
+
+.leaflet-container[data-map-scale="far"] .landing-icon,
+.leaflet-container[data-map-scale="far"] .spot-icon {
+  transform: scale(0.65);
+  transform-origin: center;
+}
+
+.leaflet-container[data-map-scale="mid"] .landing-icon,
+.leaflet-container[data-map-scale="mid"] .spot-icon,
+.leaflet-container[data-map-scale="mid"] .mark-dot {
+  transform: scale(0.85);
+  transform-origin: center;
+}
+
+.leaflet-container[data-map-scale="near"] .landing-icon,
+.leaflet-container[data-map-scale="near"] .spot-icon,
+.leaflet-container[data-map-scale="near"] .mark-dot {
+  transform: scale(1.15);
+  transform-origin: center;
+}
+
+.leaflet-container[data-label-zoom="close"] .spot-label span,
+.leaflet-container[data-label-zoom="close"] .landing-label span,
+.leaflet-container[data-label-zoom="close"] .flat-label span,
+.leaflet-container[data-label-zoom="close"] .structure-label span {
+  font-size: 12px;
 }
 
 .spot-label.is-public span {
