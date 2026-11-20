@@ -29,6 +29,7 @@ type RollStatus = {
   items: RollItem[];
   summary: { uploaded: number; missing: number; notFish: number; unreadable: number; duplicates: number } | null;
   error: string | null;
+  source: "roll" | "onedrive";
 };
 
 function photoName(file: File): string {
@@ -151,7 +152,7 @@ export function LogBook({
     }
   }
 
-  async function searchRoll(list: FileList | File[]) {
+  async function searchRoll(list: FileList | File[], source: "roll" | "onedrive" = "roll") {
     setScanning(true);
     setImportNote(null);
     const tidesByDate = new Map<string, TideEvent[] | null>();
@@ -170,6 +171,7 @@ export function LogBook({
         items: items.map((item) => ({ ...item })),
         summary,
         error,
+        source,
       });
     };
     show(0);
@@ -343,7 +345,7 @@ export function LogBook({
         <EstablishPage
           scanning={scanning}
           note={importNote}
-          onFiles={(list) => void searchRoll(list)}
+          onFiles={(list, source) => void searchRoll(list, source)}
           onBack={() => {
             setEstablishOpen(false);
             setImportNote(null);
@@ -608,7 +610,7 @@ function RollWindow({ status, onClose }: { status: RollStatus; onClose: () => vo
   return (
     <div className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/60 p-4 sm:items-center">
       <section className="flex max-h-[85dvh] w-full max-w-md flex-col gap-3 overflow-hidden rounded-xl border border-border bg-surface p-4">
-        <h2 className="text-2xl text-fg">Camera roll upload</h2>
+        <h2 className="text-2xl text-fg">{status.source === "onedrive" ? "OneDrive upload" : "Camera roll upload"}</h2>
         <p className="text-sm text-fg">
           {status.selected} photo{status.selected === 1 ? "" : "s"} selected
           {status.total !== status.selected ? ` · ${status.total} can be checked` : ""}
@@ -664,11 +666,12 @@ function EstablishPage({
 }: {
   scanning: boolean;
   note: string | null;
-  onFiles: (list: FileList | File[]) => void;
+  onFiles: (list: FileList | File[], source: "roll" | "onedrive") => void;
   onBack: () => void;
 }) {
   const rollInput = useRef<HTMLInputElement>(null);
   const albumInput = useRef<HTMLInputElement>(null);
+  const driveInput = useRef<HTMLInputElement>(null);
   const [albumOk, setAlbumOk] = useState(false);
   useEffect(() => {
     const ios =
@@ -715,7 +718,19 @@ function EstablishPage({
         >
           {scanning ? "Searching photos…" : "Search camera roll"}
         </button>
+        <button
+          type="button"
+          disabled={scanning}
+          onClick={() => driveInput.current?.click()}
+          className="h-11 rounded-lg border border-border px-4 text-sm font-semibold text-fg disabled:opacity-50"
+        >
+          {scanning ? "Searching photos…" : "Upload from OneDrive"}
+        </button>
       </div>
+      <p className="text-sm text-muted">
+        Upload from OneDrive opens your files. Choose OneDrive, then the original photos. A shared link or a
+        preview usually drops the time and the location.
+      </p>
       <input
         ref={albumInput}
         type="file"
@@ -724,7 +739,7 @@ function EstablishPage({
         onChange={(event) => {
           const picked = Array.from(event.target.files ?? []);
           event.target.value = "";
-          if (picked.length) onFiles(picked);
+          if (picked.length) onFiles(picked, "roll");
         }}
       />
       <input
@@ -736,7 +751,19 @@ function EstablishPage({
         onChange={(event) => {
           const picked = Array.from(event.target.files ?? []);
           event.target.value = "";
-          if (picked.length) onFiles(picked);
+          if (picked.length) onFiles(picked, "roll");
+        }}
+      />
+      <input
+        ref={driveInput}
+        type="file"
+        accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          const picked = Array.from(event.target.files ?? []);
+          event.target.value = "";
+          if (picked.length) onFiles(picked, "onedrive");
         }}
       />
       {note ? <p className="text-sm text-fg">{note}</p> : null}
