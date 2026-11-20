@@ -1,17 +1,48 @@
 const KEY = "lfa-custom-baits-v1";
 
-export const BAITS = [
-  "Live shrimp",
-  "Finger mullet",
-  "Gulp shrimp",
-  "Mud minnow",
-  "Grub",
-  "Paddle tail",
-  "Gold spoon",
-  "Popping cork",
-  "Fiddler crab",
-  "Carolina rig",
+export type BaitGroup = "live" | "frozen" | "artificial";
+
+export const BAIT_GROUPS: { id: BaitGroup; label: string }[] = [
+  { id: "live", label: "Live Bait" },
+  { id: "frozen", label: "Frozen Bait" },
+  { id: "artificial", label: "Artificial" },
 ];
+
+const GROUPED: { name: string; category: BaitGroup }[] = [
+  { name: "Live shrimp", category: "live" },
+  { name: "Finger mullet", category: "live" },
+  { name: "Mud minnow", category: "live" },
+  { name: "Fiddler crab", category: "live" },
+  { name: "Gulp shrimp", category: "artificial" },
+  { name: "Grub", category: "artificial" },
+  { name: "Paddle tail", category: "artificial" },
+  { name: "Gold spoon", category: "artificial" },
+  { name: "Popping cork", category: "artificial" },
+  { name: "Carolina rig", category: "artificial" },
+];
+
+export const BAITS = GROUPED.map((bait) => bait.name);
+
+type SavedBait = { name: string; category: BaitGroup | "" };
+
+export function baitGroup(name: string): BaitGroup | null {
+  if (/^grub\b/i.test(name.trim())) return "artificial";
+  const known = GROUPED.find((bait) => bait.name.toLowerCase() === name.trim().toLowerCase());
+  if (known) return known.category;
+  const saved = loadSaved().find((bait) => bait.name.toLowerCase() === name.trim().toLowerCase());
+  return saved?.category || null;
+}
+
+export function baitsIn(category: BaitGroup): string[] {
+  const names = GROUPED.filter((bait) => bait.category === category).map((bait) => bait.name);
+  for (const bait of loadSaved()) {
+    const group = bait.category || (category === "live" ? "live" : "");
+    if (group !== category) continue;
+    if (names.some((item) => item.toLowerCase() === bait.name.toLowerCase())) continue;
+    names.push(bait.name);
+  }
+  return names;
+}
 
 export const GRUB_COLORS = [
   "Chartreuse",
@@ -64,11 +95,27 @@ export function grubColors(): string[] {
 }
 
 export function loadCustomBaits(): string[] {
+  return loadSaved().map((bait) => bait.name);
+}
+
+function loadSaved(): SavedBait[] {
   try {
     const raw = localStorage.getItem(KEY);
     const parsed = raw ? (JSON.parse(raw) as unknown) : [];
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+    const saved: SavedBait[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string" && item.trim()) saved.push({ name: item.trim(), category: "" });
+      if (!item || typeof item !== "object" || !("name" in item)) continue;
+      const name = (item as { name?: unknown }).name;
+      const category = (item as { category?: unknown }).category;
+      if (typeof name !== "string" || !name.trim()) continue;
+      saved.push({
+        name: name.trim(),
+        category: category === "live" || category === "frozen" || category === "artificial" ? category : "",
+      });
+    }
+    return saved;
   } catch {
     return [];
   }
@@ -81,13 +128,13 @@ export function baitChoices(): string[] {
   return [...BAITS, ...extra];
 }
 
-/** Saves a new bait and returns the spelling to use. A match already on the list is not duplicated. */
-export function rememberBait(name: string): string {
+/** Saves a new bait under the open group. A match already on the list is not duplicated. */
+export function rememberBait(name: string, category: BaitGroup): string {
   const trimmed = name.trim();
   if (!trimmed) return "";
   const known = baitChoices().find((bait) => bait.toLowerCase() === trimmed.toLowerCase());
   if (known) return known;
-  const next = [...loadCustomBaits(), trimmed];
+  const next = [...loadSaved(), { name: trimmed, category }];
   localStorage.setItem(KEY, JSON.stringify(next));
   return trimmed;
 }
