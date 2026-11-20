@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Map as LeafletMap } from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { Pencil, Trash2 } from "lucide-react";
 import { AmpText } from "@/components/fishing/amp-text";
+import { MapLock, freezeMap, thawMap } from "@/components/fishing/map-lock";
 import { BaitPicker } from "@/components/fishing/bait-picker";
 import { exportBackup, installBackup, readBackup } from "@/lib/fishing/backup";
 import { moonOn } from "@/lib/fishing/moon";
@@ -11,6 +14,7 @@ import { captureStamp, readPhotoMeta } from "@/lib/fishing/photo-meta";
 import { hoursAfterTurn, noaaPhotoLink, stageFromStation, tidePhrase } from "@/lib/fishing/station";
 import { EMPTY_FILTER, filterRows, placeLabel, type LogFilter } from "@/lib/fishing/log-filter";
 import { loadPhoto, savePhoto, deletePhoto } from "@/lib/fishing/photos";
+import { addPlaceLabels } from "@/lib/fishing/map-labels";
 import { spotById, spotsWithinFeet } from "@/lib/fishing/spots";
 import { clockToMinutes, formatPrettyDate } from "@/lib/fishing/time";
 import type { CatchRow, PhotoRead, Species, TideEvent } from "@/lib/fishing/types";
@@ -116,6 +120,7 @@ export function LogBook({
   const [openId, setOpenId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [mapRow, setMapRow] = useState<CatchRow | null>(null);
   const [importNote, setImportNote] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedGuide, setClearedGuide] = useState(false);
@@ -346,6 +351,7 @@ export function LogBook({
   return (
     <div className="space-y-4">
       {rollStatus ? <RollWindow status={rollStatus} onClose={() => setRollStatus(null)} /> : null}
+      {mapRow ? <CatchSpotDialog row={mapRow} onClose={() => setMapRow(null)} /> : null}
       {confirmClear ? (
         <ClearConfirm
           onCancel={() => setConfirmClear(false)}
@@ -523,6 +529,13 @@ export function LogBook({
                 </button>
                 <button
                   type="button"
+                  className="inline-flex h-11 items-center rounded-md border border-border bg-surface px-3 text-sm text-fg"
+                  onClick={() => setMapRow(row)}
+                >
+                  Show catch on map
+                </button>
+                <button
+                  type="button"
                   className="inline-flex h-11 items-center gap-1 rounded-md border border-accent bg-surface px-3 text-sm text-accent"
                   onClick={() => {
                     setDeleteId(null);
@@ -612,6 +625,96 @@ export function LogBook({
         </>
       )}
     </div>
+  );
+}
+
+function CatchSpotDialog({ row, onClose }: { row: CatchRow; onClose: () => void }) {
+  const titled = `${row.species || "Catch"} · ${formatPrettyDate(row.date)}`;
+  return (
+    <div className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/60 p-4 sm:items-center">
+      <section role="dialog" aria-label={titled} className="w-full max-w-lg rounded-xl border border-border bg-surface p-4">
+        <h2 className="text-2xl text-fg">Where this fish was caught</h2>
+        <p className="mt-1 text-sm text-muted">{titled}</p>
+        {row.lat != null && row.lng != null ? (
+          <div className="mt-3 overflow-hidden rounded-xl border border-border">
+            <CatchSpotMap lat={row.lat} lng={row.lng} />
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted">This catch has no location on the photo.</p>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-3 h-11 rounded-lg border border-border px-4 text-sm text-fg"
+        >
+          Close
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function CatchSpotMap({ lat, lng }: { lat: number; lng: number }) {
+  const host = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const [locked, setLocked] = useState(true);
+
+  useEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    let dead = false;
+    void import("leaflet").then((mod) => {
+      if (dead || mapRef.current) return;
+      const L = mod.default ?? mod;
+      const map = L.map(el, {
+        zoomControl: true,
+        attributionControl: true,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      });
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
+        maxZoom: 19,
+      }).addTo(map);
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19 },
+      ).addTo(map);
+      map.setView([lat, lng], 16);
+      freezeMap(map);
+      addPlaceLabels(L, map, { users: false });
+      L.circleMarker([lat, lng], {
+        radius: 9,
+        color: "#7a120c",
+        weight: 2,
+        fillColor: "#e10600",
+        fillOpacity: 1,
+      }).addTo(map);
+      mapRef.current = map;
+      requestAnimationFrame(() => map.invalidateSize());
+    });
+    return () => {
+      dead = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, [lat, lng]);
+
+  return (
+    <MapLock
+      locked={locked}
+      onExplore={() => {
+        const map = mapRef.current;
+        if (map) thawMap(map);
+        setLocked(false);
+      }}
+    >
+      <div ref={host} className="catch-map h-72 min-h-72" role="application" aria-label="Where this fish was caught" />
+    </MapLock>
   );
 }
 
