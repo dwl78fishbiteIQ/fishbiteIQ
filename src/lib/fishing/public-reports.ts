@@ -26,6 +26,7 @@ export type PublicPulse = {
 const SCDNR = "https://www.dnr.sc.gov/news/saltpiers.html";
 const FORUM = "https://forum.charlestonfishing.com";
 const SHOP = "https://haddrellspoint.com/fishing-tips/";
+const CFR = "https://charlestonfishingreport.com";
 const RECENT_DAYS = 7;
 const cache = { at: 0, value: null as PublicPulse | null };
 const TTL = 30 * 60 * 1000;
@@ -112,12 +113,13 @@ export function withPublicReports(outlook: BiteOutlook, pulse: PublicPulse | nul
 }
 
 async function loadPulse(): Promise<PublicPulse> {
-  const [scdnr, notes, shop] = await Promise.all([readScdnr(), readForum(), readShop()]);
-  const trips = await recentTrips(notes);
+  const [scdnr, notes, shop, daily] = await Promise.all([readScdnr(), readForum(), readShop(), readCharlestonReport()]);
+  const trips = await recentTrips([...notes, ...daily]);
   return {
     prior: priorLine(scdnr, shop),
     trips,
     sources: [
+      { name: "Charleston Fishing Report", url: `${CFR}/reports` },
       { name: "Haddrell's Point", url: SHOP },
       { name: "SCDNR trends", url: SCDNR },
       { name: "Charleston Fishing", url: `${FORUM}/c/inshore-reports/58` },
@@ -270,6 +272,27 @@ async function readForum(): Promise<{ text: string; posted: string }[]> {
     }),
   );
   return posts.filter((post) => post.posted && post.text.length > 8);
+}
+
+async function readCharlestonReport(): Promise<{ text: string; posted: string }[]> {
+  try {
+    const page = await fetch(`${CFR}/reports`, { signal: AbortSignal.timeout(12000) }).then((res) => res.text());
+    const index = page.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/)?.[0];
+    if (!index) return [];
+    const bundle = await fetch(`${CFR}${index}`, { signal: AbortSignal.timeout(12000) }).then((res) => res.text());
+    const chunk = bundle.match(/\.\/reports-[A-Za-z0-9_-]+\.js/)?.[0];
+    if (!chunk) return [];
+    const js = await fetch(`${CFR}/assets/${chunk.slice(2)}`, { signal: AbortSignal.timeout(12000) }).then((res) => res.text());
+    const found: { text: string; posted: string }[] = [];
+    const pattern = /\{id:`(\d{4}-\d{2}-\d{2})`,date:`(\d{4}-\d{2}-\d{2})`,title:`([^`]*)`,summary:`([^`]*)`/g;
+    for (const match of js.matchAll(pattern)) {
+      found.push({ posted: match[2], text: `${match[3]}. ${match[4]}` });
+      if (found.length >= 7) break;
+    }
+    return found.filter((note) => note.posted && note.text.length > 8);
+  } catch {
+    return [];
+  }
 }
 
 function postedOn(iso: string): string {
