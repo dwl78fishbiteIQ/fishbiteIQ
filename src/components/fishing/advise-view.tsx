@@ -61,7 +61,6 @@ function queryAfterWake(said: string): string | null {
 export function AdviseView({
   initial,
   rows,
-  sampleOnly,
   screen,
   onShowPlan,
   onAdd,
@@ -73,7 +72,6 @@ export function AdviseView({
 }: {
   initial: ConditionsResult;
   rows: CatchRow[];
-  sampleOnly: boolean;
   screen: "home" | "when";
   onShowPlan: () => void;
   onAdd: (row: CatchRow) => void;
@@ -447,13 +445,6 @@ export function AdviseView({
           </section>
 
           <BiteCalendar rows={rows} />
-
-          {sampleOnly ? (
-            <p className="rounded-xl border-2 border-accent bg-surface p-4 text-sm text-muted">
-              A sample catch log is loaded so the advice has records to cite. Add your own trips in
-              the catch log — they're saved on this device.
-            </p>
-          ) : null}
 
           <div className="rounded-xl border-2 border-accent p-4">
             <CatchMap rows={rows} compact onOpenTrip={onOpenMapTrip} />

@@ -190,7 +190,6 @@ export function FishingApp({ initial }: { initial: ConditionsResult }) {
           <AdviseView
             initial={initial}
             rows={log.rows}
-            sampleOnly={log.sampleOnly}
             screen={view === "when" ? "when" : "home"}
             onShowPlan={() => setView("when")}
             onHome={() => setView("advise")}
