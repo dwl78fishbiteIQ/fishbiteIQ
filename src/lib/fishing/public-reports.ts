@@ -16,10 +16,19 @@ export type RecentTrip = {
   minutes: number;
 };
 
+export type WeeklyReport = {
+  posted: string;
+  waterF: number | null;
+  note: string;
+  url: string;
+};
+
 export type PublicPulse = {
   /** Month outlook. It does not move a day by itself. */
   prior: string;
   trips: RecentTrip[];
+  /** Captain's weekly note. It backs a day only when the water is close. */
+  weekly: WeeklyReport | null;
   sources: { name: string; url: string }[];
 };
 
@@ -27,6 +36,7 @@ const SCDNR = "https://www.dnr.sc.gov/news/saltpiers.html";
 const FORUM = "https://forum.charlestonfishing.com";
 const SHOP = "https://haddrellspoint.com/fishing-tips/";
 const CFR = "https://charlestonfishingreport.com";
+const AHQ = "https://www.anglersheadquarters.com/blogs/ahq-report.atom";
 const RECENT_DAYS = 7;
 const cache = { at: 0, value: null as PublicPulse | null };
 const TTL = 30 * 60 * 1000;
@@ -62,12 +72,15 @@ export function publicOnlyOutlook(base: BiteOutlook, pulse: PublicPulse | null, 
     };
   }
   const match = day ? pulse.trips.find((trip) => sameWater(day, trip)) : undefined;
+  const weekly = weeklyBacks(pulse, day);
   if (!match) {
     return {
       ...base,
       grade: "Fair",
       window: null,
-      summary: "No report from the last several days was fished in wind, water, and tide like this day. The monthly outlook does not score the day.",
+      summary: weekly
+        ? `${weekly.note} Harbor water is close, so the weekly note backs this day. It does not set the tide, and the catch log is not in this score.`
+        : "No report from the last several days was fished in wind, water, and tide like this day. The monthly outlook and an older weekly note do not score the day.",
     };
   }
   const start = Math.max(0, match.minutes - 90);
@@ -87,10 +100,20 @@ export function applyReports(advice: Advice, pulse: PublicPulse | null, day: Con
     };
   }
   const match = pulse.trips.find((trip) => sameWater(day, trip));
-  if (!match) return advice;
+  const weekly = weeklyBacks(pulse, day);
+  if (!match) {
+    if (!weekly) return advice;
+    return {
+      ...advice,
+      lede: `${advice.lede} ${weekly.note} Harbor water is close to that report, so it backs the call. It does not pick the tide.`.trim(),
+      confidence: advice.confidence === "low" ? "medium" : advice.confidence,
+      confidenceWhy: `${advice.confidenceWhy} Angler's Headquarters this week matches the water.`.trim(),
+    };
+  }
+  const extra = weekly ? ` ${weekly.note}` : "";
   return {
     ...advice,
-    lede: `${advice.lede} A local report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day, so it backs the call. The monthly outlook stays in the background.`.trim(),
+    lede: `${advice.lede} A local report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day, so it backs the call. The monthly outlook stays in the background.${extra}`.trim(),
     confidence: advice.confidence === "low" ? "medium" : advice.confidence,
     confidenceWhy: `${advice.confidenceWhy} A report from the last several days matches this wind, water, and tide.`.trim(),
   };
@@ -99,10 +122,13 @@ export function applyReports(advice: Advice, pulse: PublicPulse | null, day: Con
 export function withPublicReports(outlook: BiteOutlook, pulse: PublicPulse | null, day: Conditions | null): BiteOutlook {
   if (!pulse || outlook.grade === "Stay ashore") return outlook;
   const match = day ? pulse.trips.find((trip) => sameWater(day, trip)) : undefined;
+  const weekly = weeklyBacks(pulse, day);
   if (!match || outlook.grade === "Hot") {
     const held = match
       ? `A report from ${formatPrettyDate(match.date)} was fished in wind, water, and tide like this day. The catch log already has it at Hot.`
-      : "No report from the last several days was fished in wind, water, and tide like this day.";
+      : weekly
+        ? `${weekly.note} Harbor water is close, so the weekly note backs this day without moving the grade.`
+        : "No report from the last several days was fished in wind, water, and tide like this day.";
     return { ...outlook, summary: `${outlook.summary} ${held}` };
   }
   return {
@@ -113,16 +139,24 @@ export function withPublicReports(outlook: BiteOutlook, pulse: PublicPulse | nul
 }
 
 async function loadPulse(): Promise<PublicPulse> {
-  const [scdnr, notes, shop, daily] = await Promise.all([readScdnr(), readForum(), readShop(), readCharlestonReport()]);
+  const [scdnr, notes, shop, daily, weekly] = await Promise.all([
+    readScdnr(),
+    readForum(),
+    readShop(),
+    readCharlestonReport(),
+    readAhq(),
+  ]);
   const trips = await recentTrips([...notes, ...daily]);
   return {
-    prior: priorLine(scdnr, shop),
+    prior: priorLine(scdnr, shop, weekly),
     trips,
+    weekly,
     sources: [
       { name: "Charleston Fishing Report", url: `${CFR}/reports` },
       { name: "Haddrell's Point", url: SHOP },
       { name: "SCDNR trends", url: SCDNR },
       { name: "Charleston Fishing", url: `${FORUM}/c/inshore-reports/58` },
+      { name: "Angler's Headquarters", url: weekly?.url ?? "https://www.anglersheadquarters.com/blogs/ahq-report" },
     ],
   };
 }
@@ -132,12 +166,21 @@ export function matchingReport(pulse: PublicPulse | null, day: Conditions | null
   return pulse.trips.find((trip) => sameWater(day, trip)) ?? null;
 }
 
-function priorLine(scdnr: string, shop: string): string {
+function priorLine(scdnr: string, shop: string, weekly: WeeklyReport | null): string {
   const month = /live shrimp/i.test(scdnr) && /mud minnow/i.test(scdnr);
   const official = month
     ? "SCDNR's Charleston note is a month outlook: trout and redfish excellent through the month, live shrimp early, then mud minnows."
     : "SCDNR's Charleston note is a month outlook, not a call for one day.";
-  return shop ? `${official} ${shop}` : official;
+  return [official, shop, weekly?.note ?? ""].filter(Boolean).join(" ");
+}
+
+function weeklyBacks(pulse: PublicPulse | null, day: Conditions | null): WeeklyReport | null {
+  const weekly = pulse?.weekly;
+  if (!weekly || !day || weekly.waterF == null) return null;
+  const age = calendarDiff(weekly.posted, todayInCharleston());
+  if (age < 0 || age > RECENT_DAYS) return null;
+  if (Math.abs(day.waterF - weekly.waterF) > 6) return null;
+  return weekly;
 }
 
 function sameWater(day: Conditions, trip: RecentTrip): boolean {
@@ -298,6 +341,59 @@ async function readCharlestonReport(): Promise<{ text: string; posted: string }[
   } catch {
     return [];
   }
+}
+
+async function readAhq(): Promise<WeeklyReport | null> {
+  try {
+    const xml = await fetch(AHQ, { signal: AbortSignal.timeout(15000) }).then((res) => res.text());
+    const entry = xml.split("<entry>").slice(1).find((part) => /Charleston \(SC\)/.test(part));
+    if (!entry) return null;
+    const published = entry.match(/<published>(.*?)<\/published>/)?.[1] ?? "";
+    const posted = postedOn(published);
+    const href =
+      entry.match(/href="(https:\/\/www\.anglersheadquarters\.com\/blogs\/ahq-report\/[^"]+)"/)?.[1] ??
+      "https://www.anglersheadquarters.com/blogs/ahq-report";
+    const raw = entry.match(/<content[^>]*>([\s\S]*?)<\/content>/)?.[1] ?? "";
+    const text = strip(decodeXml(raw));
+    const parts = text.split(/Morning surface water temperatures/i);
+    const current = `${parts[0] ?? ""} Morning surface water temperatures ${parts[1] ?? ""}`.slice(0, 1600);
+    const water = current.match(/water temperatures are around (\d{2})(?:\s*-\s*(\d{2}))?/i);
+    const waterF = water ? Math.round((Number(water[1]) + Number(water[2] || water[1])) / 2) : null;
+    if (!posted) return null;
+    return { posted, waterF, note: ahqNote(current, waterF), url: href };
+  } catch {
+    return null;
+  }
+}
+
+function ahqNote(text: string, waterF: number | null): string {
+  const species = ["trout", "redfish", "flounder", "sheepshead", "black drum"].filter((name) => {
+    if (name === "redfish") return /redfish|red drum/i.test(text);
+    return new RegExp(name, "i").test(text);
+  });
+  const baits = [
+    [/live shrimp/i, "live shrimp"],
+    [/finger mullet/i, "finger mullet"],
+    [/mud minnow/i, "mud minnows"],
+    [/crab/i, "crab"],
+    [/grub|artificial|paddletail|vudu|doa/i, "artificials"],
+  ]
+    .filter(([pattern]) => (pattern as RegExp).test(text))
+    .map(([, name]) => name as string);
+  const tide = /low tide has been the best/i.test(text) ? " Low tide has been the better stage." : "";
+  const water = waterF != null ? ` Harbor water about ${waterF}°F.` : "";
+  const fish = species.length ? species.slice(0, 3).join(", ") : "inshore fish";
+  const bait = baits.length ? ` on ${baits.slice(0, 3).join(", ")}` : "";
+  return `Angler's Headquarters this week: ${fish}${bait}.${water}${tide}`.replace(/\s+/g, " ").trim();
+}
+
+function decodeXml(value: string): string {
+  return value
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/&/g, "&")
+    .replace(/&#39;|'/g, "'")
+    .replace(/"/g, '"');
 }
 
 function postedOn(iso: string): string {
