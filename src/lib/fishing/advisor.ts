@@ -632,7 +632,6 @@ function answerFromLog(
     });
   }
 
-  const moon = moonOn(query.date);
   const pattern = logPattern(rows, query.species);
   const askedTurn = askedMinutes != null && conditions ? hoursAfterTurn(conditions.tides, askedMinutes) : null;
   const scored = pool.map((row) => {
@@ -656,56 +655,24 @@ function answerFromLog(
   const stage = top ? bestStage(top.rows) : bestStage(matched);
   const turnTarget = askedTurn ?? typicalTurn(top?.rows ?? matched);
   const tideWindow = conditions ? tideWindowFor(stage, conditions.tides, matched, askedMinutes, turnTarget) : null;
-  const unsafe = conditions ? dayIsUnsafe(conditions) : false;
-  const sentences: string[] = [asked];
-  const fish = query.species ? commonName(query.species) : null;
-  sentences.push(
-    conditions
-      ? `From ${pool.length} trip${pool.length === 1 ? "" : "s"} in the catch log${fish ? ` marked ${fish}` : ""}. ${strong.length} of them look like the weather on ${formatPrettyDate(query.date)}.`
-      : `From ${pool.length} trip${pool.length === 1 ? "" : "s"} in the catch log${fish ? ` marked ${fish}` : ""}. No forecast loaded for that day.`,
-  );
-  if (conditions) sentences.push(forecastSentence(conditions, moon.name));
-  if ((asksWhere || wantsAll) && top) {
-    const place = top.lat != null ? describePlace(top.lat, top.lng) : null;
-    sentences.push(
-      place
-        ? `Best supported place is ${top.name} on ${place.waterway}. Closest public landing is ${place.landing}, ${place.landingMiles.toFixed(1)} miles by water.`
-        : `Best supported place is ${top.name}.`,
-    );
-  }
-  if (asksWhen || wantsAll) {
-    if (tideWindow) {
-      const whenLine = turnTarget ? offsetPhrase(turnTarget) : `on the ${stage}`;
-      sentences.push(
-        `Best 3 hours: ${formatClock(tideWindow.start)}–${formatClock(tideWindow.end)}, ${whenLine}. That is the ${stage}.`,
-      );
-    } else if (when) {
-      sentences.push(`The logged times in this weather run ${when}.`);
-    }
-    const majors = solunarOn(query.date).periods.filter((period) => period.kind === "major");
-    if (majors.length) {
-      const line = majors
-        .map((period) => `${period.name.toLowerCase()} ${formatRange(period.start, period.end)}`)
-        .join(", ");
-      const hit = tideWindow
-        ? majors.find((period) => period.end > tideWindow.start && period.start < tideWindow.end)
-        : null;
-      sentences.push(
-        hit
-          ? `That tide window overlaps a solunar major, ${hit.name.toLowerCase()} ${formatRange(hit.start, hit.end)}.`
-          : `Solunar majors that day: ${line}.`,
-      );
-    }
-  }
-  if ((asksBait || wantsAll) && bait) sentences.push(`Bait on the matching trips: ${bait}.`);
   const skunk = clusterRows(
     scored.filter((item) => item.row.count === 0 && item.weather >= 4).map((item) => item.row),
     waypoints,
   ).find((cluster) => cluster.id !== top?.id);
-  if (skunk) sentences.push(`You have already blanked at ${skunk.name} in weather like this.`);
-  if (!strong.length) {
-    sentences.push("None of the logged days were very close to this forecast, so treat the place as a weak lean.");
+  const unsafe = conditions ? dayIsUnsafe(conditions) : false;
+  const sentences: string[] = [];
+  const whenBit = tideWindow
+    ? `${formatClock(tideWindow.start)}–${formatClock(tideWindow.end)}`
+    : when;
+  const baitBit = (asksBait || wantsAll) && bait ? ` on ${bait}` : "";
+  if ((asksWhere || wantsAll) && top) {
+    sentences.push(`${top.name}${whenBit ? `, ${whenBit}` : ""}${baitBit}.`);
+  } else if (whenBit && (asksWhen || wantsAll)) {
+    sentences.push(`${whenBit}${baitBit}.`);
+  } else if (baitBit) {
+    sentences.push(`${bait ?? "No bait noted"}.`);
   }
+  if (skunk) sentences.push(`You blanked at ${skunk.name} in weather like this.`);
   if (unsafe && conditions) sentences.push(unsafeSentence(conditions));
   if (notes.length) sentences.push(notes.join(" "));
 
@@ -748,6 +715,7 @@ function answerFromLog(
       : strong.length >= 2
         ? "medium"
         : "low";
+  const fish = query.species ? commonName(query.species) : null;
   return emptyAdvice({
     mode: unsafe ? "unsafe" : "log",
     headline: unsafe
@@ -757,9 +725,11 @@ function answerFromLog(
         : `From the catch log · ${formatPrettyDate(query.date)}`,
     lede: sentences.join(" "),
     confidence,
-    confidenceWhy: conditions
-      ? `${strong.length} trip${strong.length === 1 ? "" : "s"} matched this forecast. Place, time, and bait come from those trips.`
-      : "No forecast loaded, so this is the catch log only.",
+    confidenceWhy: !conditions
+      ? "Catch log only."
+      : strong.length
+        ? `${strong.length} ${strong.length === 1 ? "catch matches" : "catches match"} this weather.`
+        : "No catch is close to this weather. Weak lean.",
     picks: asksBait && !asksWhere ? [] : picks,
     safety: unsafe && conditions ? unsafeSentence(conditions) : null,
     logFacts: asksBait && !asksWhere
@@ -834,18 +804,12 @@ function whyThisSpot(
 ): string {
   const species = [...new Set(rows.map((row) => row.species).filter(Boolean))].map((name) => commonName(name));
   const fish = species.length ? species.join(" and ") : "fish";
-  const trips = `${rows.length} logged trip${rows.length === 1 ? "" : "s"}`;
-  const weather = conditions
-    ? fit >= 4
-      ? "Those trips were in weather like this forecast."
-      : "The forecast is only a loose match to those trips."
-    : "No forecast was loaded, so this is from the catch log alone.";
-  const recent = rows.filter((row) => conditions && recencyPoints(row.date, conditions.date) >= 2).length;
-  const season = conditions ? seasonOf(monthOf(conditions.date)) : null;
-  const recentLine = recent ? ` ${recent} of them are from the last two months.` : "";
-  const seasonLine = season ? ` Counted from ${season} trips.` : "";
-  const baitLine = bait ? ` ${bait} was the bait.` : "";
-  return `${trips} caught ${fish} here, mostly on the ${stage} tide.${recentLine}${seasonLine} ${weather}${baitLine}`;
+  const match = !conditions
+    ? "Catch log only."
+    : fit >= 4
+      ? "Weather matches."
+      : "Weather is a loose match.";
+  return `${rows.length} ${fish} here on the ${stage}${bait ? `, mostly ${bait}` : ""}. ${match}`;
 }
 
 function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: number | null): number {
