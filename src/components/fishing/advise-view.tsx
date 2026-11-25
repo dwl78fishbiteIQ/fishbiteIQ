@@ -196,9 +196,10 @@ export function AdviseView({
       if (asked.kind === "predict") setDate(asked.date);
       cond = await ensure(asked.date);
     }
-    let advice = advise(asked, rowsRef.current, cond, today, marksRef.current);
+    const pulse = asked.kind === "predict" || asked.kind === "when" ? await livePublicReports() : null;
+    let advice = advise(asked, rowsRef.current, cond, today, marksRef.current, pulse);
     if (asked.kind === "predict" || asked.kind === "when") {
-      advice = applyReports(advice, await livePublicReports(), cond);
+      advice = applyReports(advice, pulse, cond);
     }
     setTurns((current) =>
       current.map((turn) => (turn.id === id ? { ...turn, advice, pending: null } : turn)),

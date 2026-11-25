@@ -127,6 +127,11 @@ async function loadPulse(): Promise<PublicPulse> {
   };
 }
 
+export function matchingReport(pulse: PublicPulse | null, day: Conditions | null): RecentTrip | null {
+  if (!pulse || !day) return null;
+  return pulse.trips.find((trip) => sameWater(day, trip)) ?? null;
+}
+
 function priorLine(scdnr: string, shop: string): string {
   const month = /live shrimp/i.test(scdnr) && /mud minnow/i.test(scdnr);
   const official = month

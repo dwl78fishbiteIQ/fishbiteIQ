@@ -1,4 +1,5 @@
 import { moonOn } from "@/lib/fishing/moon";
+import { matchingReport, type PublicPulse } from "@/lib/fishing/public-reports";
 import { noteFor, notesForMonth } from "@/lib/fishing/seasons";
 import { mentionedSpot, spotById, SPOTS } from "@/lib/fishing/spots";
 import { rowNear } from "@/lib/fishing/log-filter";
@@ -44,6 +45,52 @@ const REMINDERS = [
   "Check current SCDNR size and bag limits before you keep anything. A length guessed from a photo is not a legal measurement.",
   "Check the marine forecast again before you leave the dock. If it turns rough, don't go.",
 ];
+
+/** A trip has to clear this weather score before it drives the place and the window. */
+const STRONG_MATCH = 5;
+
+type FitWeights = {
+  windDir: number;
+  windSpeed: number;
+  water: number;
+  air: number;
+  pressure: number;
+  pressureTrend: number;
+  front: number;
+  waves: number;
+  rain24: number;
+  current: number;
+  moon: number;
+  tide: number;
+};
+
+const BASE_WEIGHTS: FitWeights = {
+  windDir: 2,
+  windSpeed: 2,
+  water: 2,
+  air: 1,
+  pressure: 1,
+  pressureTrend: 2,
+  front: 2,
+  waves: 1,
+  rain24: 1,
+  current: 1,
+  moon: 1,
+  tide: 0,
+};
+
+function weightsFor(species: Species | "" | null | undefined): FitWeights {
+  const weights = { ...BASE_WEIGHTS };
+  if (species === "Red Drum" || species === "Flounder") {
+    weights.water = 3;
+    weights.tide = 2;
+  }
+  if (species === "Spotted Seatrout") {
+    weights.pressureTrend = 3;
+    weights.moon = 2;
+  }
+  return weights;
+}
 
 export type Query =
   | {
@@ -144,13 +191,14 @@ export function advise(
   conditions: Conditions | null,
   today: string,
   waypoints: Waypoint[] = [],
+  pulse: PublicPulse | null = null,
 ): Advice {
   if (query.kind === "photo") return photoAsk();
   if (query.kind === "clarify") return clarify(query);
   if (query.kind === "season") return seasonReport(query.month, rows);
   if (query.kind === "log") return logReport(query, rows);
-  if (query.kind === "when") return answerFromLog(query, rows, conditions, waypoints);
-  return predict(query, rows, conditions, today, waypoints);
+  if (query.kind === "when") return answerFromLog(query, rows, conditions, waypoints, pulse);
+  return predict(query, rows, conditions, today, waypoints, pulse);
 }
 
 function emptyAdvice(partial: Partial<Advice> & Pick<Advice, "mode" | "headline" | "lede">): Advice {
@@ -321,6 +369,7 @@ function predict(
   conditions: Conditions | null,
   today: string,
   waypoints: Waypoint[],
+  pulse: PublicPulse | null = null,
 ): Advice {
   const month = monthOf(query.date);
   const species = query.species;
@@ -336,12 +385,12 @@ function predict(
   });
   const scored = clusterRows(logged, waypoints).map((cluster) => {
     const ranked = cluster.rows.map((row) => {
-      const weather = meteoFit(row, conditions, null);
+      const weather = meteoFit(row, conditions, null, species, pulse);
       const season = seasonPoints(row.date, query.date);
       const total = weather + recencyPoints(row.date, query.date) + season + patternPoints(row, conditions, query.date, pattern);
       return { row, weather, season, total };
     });
-    const similar = ranked.filter((item) => item.weather >= 4 && item.season >= 1);
+    const similar = ranked.filter((item) => item.weather >= STRONG_MATCH && item.season >= 1);
     const seasonal = ranked.filter((item) => item.season >= 1);
     const pool = (similar.length ? similar : seasonal).map((item) => item.row);
     const stage = pool.length ? bestStage(pool) : ("outgoing" as TideStage);
@@ -533,6 +582,7 @@ function answerFromLog(
   rows: CatchRow[],
   conditions: Conditions | null,
   waypoints: Waypoint[],
+  pulse: PublicPulse | null = null,
 ): Advice {
   const question = query.question;
   const asksWhere = /\b(where|place|spot|location)\b/i.test(question);
@@ -635,12 +685,12 @@ function answerFromLog(
   const pattern = logPattern(rows, query.species);
   const askedTurn = askedMinutes != null && conditions ? hoursAfterTurn(conditions.tides, askedMinutes) : null;
   const scored = pool.map((row) => {
-    const weather = meteoFit(row, conditions, askedMinutes);
+    const weather = meteoFit(row, conditions, askedMinutes, query.species, pulse);
     const context = recencyPoints(row.date, query.date) + seasonPoints(row.date, query.date) + patternPoints(row, conditions, query.date, pattern);
     return { row, weather, total: weather + context };
   });
   const fitById = new Map(scored.map((item) => [item.row.id, item]));
-  const strong = scored.filter((item) => item.weather >= 4);
+  const strong = scored.filter((item) => item.weather >= STRONG_MATCH);
   const matched = (strong.length ? strong : scored).map((item) => item.row);
   const clusters = clusterRows(matched, waypoints)
     .sort((a, b) => {
@@ -656,7 +706,7 @@ function answerFromLog(
   const turnTarget = askedTurn ?? typicalTurn(top?.rows ?? matched);
   const tideWindow = conditions ? tideWindowFor(stage, conditions.tides, matched, askedMinutes, turnTarget) : null;
   const skunk = clusterRows(
-    scored.filter((item) => item.row.count === 0 && item.weather >= 4).map((item) => item.row),
+    scored.filter((item) => item.row.count === 0 && item.weather >= STRONG_MATCH).map((item) => item.row),
     waypoints,
   ).find((cluster) => cluster.id !== top?.id);
   const unsafe = conditions ? dayIsUnsafe(conditions) : false;
@@ -765,11 +815,11 @@ export function biteOutlook(rows: CatchRow[], conditions: Conditions | null, dat
   }
   const pattern = logPattern(rows, null);
   const scored = producers.map((row) => {
-    const weather = meteoFit(row, conditions, null);
+    const weather = meteoFit(row, conditions, null, row.species);
     const total = weather + recencyPoints(row.date, date) + seasonPoints(row.date, date) + patternPoints(row, conditions, date, pattern);
     return { row, weather, total };
   });
-  const strong = scored.filter((item) => item.weather >= 4).sort((a, b) => b.total - a.total);
+  const strong = scored.filter((item) => item.weather >= STRONG_MATCH).sort((a, b) => b.total - a.total);
   const pool = (strong.length ? strong : [...scored].sort((a, b) => b.total - a.total)).slice(0, 12);
   const best = pool.map((item) => item.row);
   const stage = bestStage(best);
@@ -806,14 +856,21 @@ function whyThisSpot(
   const fish = species.length ? species.join(" and ") : "fish";
   const match = !conditions
     ? "Catch log only."
-    : fit >= 4
+    : fit >= STRONG_MATCH
       ? "Weather matches."
       : "Weather is a loose match.";
   return `${rows.length} ${fish} here on the ${stage}${bait ? `, mostly ${bait}` : ""}. ${match}`;
 }
 
-function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: number | null): number {
+function meteoFit(
+  row: CatchRow,
+  conditions: Conditions | null,
+  askedMinutes: number | null,
+  species: Species | "" | null = null,
+  pulse: PublicPulse | null = null,
+): number {
   if (!conditions) return 0;
+  const weights = weightsFor(species || row.species);
   const minute = askedMinutes ?? clockToMinutes(row.startTime);
   const hour = minute == null ? null : pointAt(conditions, minute);
   let score = 0;
@@ -821,7 +878,7 @@ function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: nu
   const wind = row.windDir || row.meteo?.windDir || "";
   const forecastDir =
     hour?.windDeg == null ? conditions.daylight.windDir : (degToWind(hour.windDeg) as WindDir);
-  if (forecastDir && windClose(wind, forecastDir)) score += 2;
+  if (forecastDir && windClose(wind, forecastDir)) score += weights.windDir;
 
   const rowWind = row.windMph ?? row.meteo?.windMph ?? null;
   const forecastWind =
@@ -829,52 +886,52 @@ function meteoFit(row: CatchRow, conditions: Conditions | null, askedMinutes: nu
     (conditions.daylight.windLow != null && conditions.daylight.windHigh != null
       ? (conditions.daylight.windLow + conditions.daylight.windHigh) / 2
       : conditions.daylight.windHigh);
-  if (rowWind != null && forecastWind != null && Math.abs(rowWind - forecastWind) <= 6) score += 1;
+  if (rowWind != null && forecastWind != null && Math.abs(rowWind - forecastWind) <= 8) score += weights.windSpeed;
 
   const rowWater = row.waterTempF ?? row.meteo?.waterF ?? null;
-  if (rowWater != null && Math.abs(rowWater - conditions.waterF) <= 4) score += 2;
+  if (rowWater != null && Math.abs(rowWater - conditions.waterF) <= 6) score += weights.water;
 
   const rowAir = row.airTempF ?? row.meteo?.airF ?? null;
   const forecastAir = hour?.airF ?? dayAir(conditions);
-  if (rowAir != null && forecastAir != null && Math.abs(rowAir - forecastAir) <= 8) score += 1;
+  if (rowAir != null && forecastAir != null && Math.abs(rowAir - forecastAir) <= 8) score += weights.air;
 
   const rowPressure = row.meteo?.pressureHpa ?? null;
   if (rowPressure != null && conditions.pressureHpa != null && Math.abs(rowPressure - conditions.pressureHpa) <= 6) {
-    score += 1;
+    score += weights.pressure;
   }
   if (row.meteo?.pressureTrend && conditions.pressureTrend && row.meteo.pressureTrend === conditions.pressureTrend) {
-    score += 1;
+    score += weights.pressureTrend;
   }
 
   const rowWave = row.meteo?.waveFt ?? null;
   const forecastWave = hour?.waveFt ?? conditions.daylight.waveFt;
-  if (rowWave != null && forecastWave != null && Math.abs(rowWave - forecastWave) <= 1.5) score += 1;
-
-  if (row.meteo?.cloudPct != null && conditions.cloudPct != null && Math.abs(row.meteo.cloudPct - conditions.cloudPct) <= 25) {
-    score += 1;
-  }
-  const rowPrecip = row.meteo?.precipPct ?? null;
-  if (rowPrecip != null && conditions.daylight.precipPct != null && Math.abs(rowPrecip - conditions.daylight.precipPct) <= 20) {
-    score += 1;
-  }
-  const rowHumidity = row.meteo?.humidity ?? null;
-  if (rowHumidity != null && conditions.humidity != null && Math.abs(rowHumidity - conditions.humidity) <= 15) score += 1;
+  if (rowWave != null && forecastWave != null && Math.abs(rowWave - forecastWave) <= 1.5) score += weights.waves;
 
   const rowRain = row.meteo?.precip24In ?? null;
-  if (rowRain != null && conditions.precip24In != null && closeAmount(rowRain, conditions.precip24In, 0.2)) score += 1;
+  if (rowRain != null && conditions.precip24In != null && closeAmount(rowRain, conditions.precip24In, 0.2)) {
+    score += weights.rain24;
+  }
 
   const rowFront = row.meteo?.frontHours ?? null;
-  if (rowFront != null && conditions.frontHours != null && sameSide(rowFront, conditions.frontHours) && Math.abs(rowFront - conditions.frontHours) <= 12) {
-    score += 1;
+  if (
+    rowFront != null &&
+    conditions.frontHours != null &&
+    sameSide(rowFront, conditions.frontHours) &&
+    Math.abs(rowFront - conditions.frontHours) <= 12
+  ) {
+    score += weights.front;
   }
 
   const rowCurrent = row.meteo?.currentKt ?? null;
   const minuteNow = minute ?? 12 * 60;
   const stage = stageFromStation(conditions.tides, minuteNow);
-  if (rowCurrent != null && stage && currentAgrees(rowCurrent, stage)) score += 1;
+  if (rowCurrent != null && stage && currentAgrees(rowCurrent, stage)) score += weights.current;
+  if (weights.tide && stage && row.tideStage === stage) score += weights.tide;
 
-  if (row.lengthIn != null && row.lengthIn > 0) score += 1;
-  if (moonOn(row.date).bucket === moonOn(conditions.date).bucket) score += 1;
+  if (moonOn(row.date).bucket === moonOn(conditions.date).bucket) score += weights.moon;
+
+  const report = matchingReport(pulse, conditions);
+  if (report?.tideStage && row.tideStage === report.tideStage) score += 1;
   return score;
 }
 
