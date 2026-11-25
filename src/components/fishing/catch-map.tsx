@@ -11,6 +11,11 @@ import { type Waypoint } from "@/lib/fishing/waypoints";
 import { freezeMap, MapLock, thawMap } from "@/components/fishing/map-lock";
 import { cn } from "@/lib/cn";
 
+/** Bigger pin when more catches share that spot. One catch stays small. */
+function catchIconRadius(count: number): number {
+  return Math.min(28, Math.round(8 + 6 * Math.log2(Math.max(1, count))));
+}
+
 export function CatchMap({
   rows,
   compact = false,
@@ -110,8 +115,9 @@ export function CatchMap({
         if (heat) break;
         const active = pin.id === selected?.id;
         const empty = pin.fish === 0;
+        const count = Math.max(pin.fish, pin.rows.length, 1);
         const marker = L.circleMarker([pin.lat, pin.lng], {
-          radius: empty ? 9 : Math.min(20, 9 + Math.sqrt(pin.fish)),
+          radius: catchIconRadius(count),
           color: active ? "#fff" : "#7a120c",
           weight: active ? 3 : 2,
           fillColor: empty ? surface : catchRed,
