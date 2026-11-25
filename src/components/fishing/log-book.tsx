@@ -666,7 +666,6 @@ function CatchSpotDialog({ row, onClose }: { row: CatchRow; onClose: () => void 
 function CatchSpotMap({ lat, lng }: { lat: number; lng: number }) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
-  const [locked, setLocked] = useState(true);
 
   useEffect(() => {
     const el = host.current;
@@ -715,11 +714,13 @@ function CatchSpotMap({ lat, lng }: { lat: number; lng: number }) {
 
   return (
     <MapLock
-      locked={locked}
       onExplore={() => {
         const map = mapRef.current;
         if (map) thawMap(map);
-        setLocked(false);
+      }}
+      onClose={() => {
+        const map = mapRef.current;
+        if (map) freezeMap(map);
       }}
     >
       <div ref={host} className="catch-map h-72 min-h-72" role="application" aria-label="Where this fish was caught" />

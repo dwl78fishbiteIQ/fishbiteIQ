@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { AlertTriangle } from "lucide-react";
@@ -169,7 +169,6 @@ export function AdviceCard({
 function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string }) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
-  const [locked, setLocked] = useState(true);
 
   useEffect(() => {
     const el = host.current;
@@ -219,11 +218,13 @@ function PickMap({ lat, lng, name }: { lat: number; lng: number; name: string })
   return (
     <div className="mt-2">
       <MapLock
-        locked={locked}
         onExplore={() => {
           const map = mapRef.current;
           if (map) thawMap(map);
-          setLocked(false);
+        }}
+        onClose={() => {
+          const map = mapRef.current;
+          if (map) freezeMap(map);
         }}
       >
         <div ref={host} className="pick-map" role="img" aria-label={`Map of ${name}`} />

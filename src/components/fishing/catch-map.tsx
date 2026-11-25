@@ -43,7 +43,6 @@ export function CatchMap({
   const fitted = useRef("");
   const [ready, setReady] = useState(false);
   const [heat, setHeat] = useState(false);
-  const [locked, setLocked] = useState(true);
   const heatCanvas = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -248,13 +247,15 @@ export function CatchMap({
 
       {pins.length === 0 ? <p className="text-sm text-muted">Nothing to plot for that filter.</p> : null}
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="rounded-xl border border-border">
         <MapLock
-          locked={locked}
           onExplore={() => {
             const map = mapRef.current;
             if (map) thawMap(map);
-            setLocked(false);
+          }}
+          onClose={() => {
+            const map = mapRef.current;
+            if (map) freezeMap(map);
           }}
         >
           <div

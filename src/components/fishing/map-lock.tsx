@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Map as LeafletMap } from "leaflet";
 
 type TappableMap = LeafletMap & { tap?: { disable: () => void; enable: () => void } };
@@ -24,30 +24,70 @@ export function thawMap(map: LeafletMap) {
 }
 
 export function MapLock({
-  locked,
   onExplore,
+  onClose,
   children,
 }: {
-  locked: boolean;
   onExplore: () => void;
+  onClose?: () => void;
   children: ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+  const [hold, setHold] = useState(0);
+  const shell = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const kick = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
+    return () => window.clearTimeout(kick);
+  }, [open]);
+
+  function explore() {
+    setHold(shell.current?.offsetHeight ?? 0);
+    setOpen(true);
+    onExplore();
+  }
+
+  function close() {
+    setOpen(false);
+    onClose?.();
+  }
+
   return (
-    <div className="relative">
-      {children}
-      {locked ? (
-        <div className="absolute inset-0 z-10 flex items-start justify-end p-2">
-          <button
-            type="button"
-            onClick={onExplore}
-            className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg shadow-[0_8px_20px_rgb(0_0_0/0.35)]"
-          >
-            Explore Map
-          </button>
-        </div>
+    <>
+      {open ? <div style={{ height: hold }} /> : null}
+      {open ? (
+        <button type="button" aria-label="Close map" className="fixed inset-0 z-[2090] bg-black/60" onClick={close} />
       ) : null}
-      <MapLegend />
-    </div>
+      <div ref={shell} className={open ? "map-explore-shell" : "relative"}>
+        {open ? (
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <p className="text-sm font-semibold text-fg">Map</p>
+            <button
+              type="button"
+              onClick={close}
+              className="h-11 rounded-lg border border-border px-4 text-sm font-semibold text-fg"
+            >
+              Close
+            </button>
+          </div>
+        ) : null}
+        <div className={open ? "relative min-h-0 flex-1" : "relative"}>
+          {children}
+          {open ? null : (
+            <div className="absolute inset-0 z-10 flex items-start justify-end p-2">
+              <button
+                type="button"
+                onClick={explore}
+                className="h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-fg shadow-[0_8px_20px_rgb(0_0_0/0.35)]"
+              >
+                Explore Map
+              </button>
+            </div>
+          )}
+          <MapLegend />
+        </div>
+      </div>
+    </>
   );
 }
 

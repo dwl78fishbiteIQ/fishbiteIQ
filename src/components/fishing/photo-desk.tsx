@@ -550,7 +550,6 @@ function PhoneSettings() {
 function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
-  const [locked, setLocked] = useState(true);
 
   useEffect(() => {
     const el = host.current;
@@ -603,11 +602,13 @@ function PhotoPin({ lat, lng }: { lat: number; lng: number }) {
 
   return (
     <MapLock
-      locked={locked}
       onExplore={() => {
         const map = mapRef.current;
         if (map) thawMap(map);
-        setLocked(false);
+      }}
+      onClose={() => {
+        const map = mapRef.current;
+        if (map) freezeMap(map);
       }}
     >
       <div ref={host} className="catch-map h-64 min-h-64" role="application" aria-label="Where this photo was taken" />
